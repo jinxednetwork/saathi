@@ -218,7 +218,7 @@ function lowestDayWithSupport(buckets) {
  * - level: rising-cost curve; levelProgress is fraction toward the next level.
  * @returns {{streak:number,xp:number,level:number,levelProgress:number,xpIntoLevel:number,xpForNext:number}}
  */
-export function computeGameState(entries, todayTs) {
+export function computeGameState(entries, todayTs, sessions = []) {
   const days = new Set(entries.map((e) => dayIndex(e.ts)));
   const todayIdx = dayIndex(todayTs);
 
@@ -235,8 +235,28 @@ export function computeGameState(entries, todayTs) {
     if (String(e.text || '').trim().length >= 20) xp += 5;
   }
   xp += streak * 5;
+  // Completed focus sessions also earn XP (mirrors the design's +15 per session).
+  xp += (Array.isArray(sessions) ? sessions.length : 0) * 15;
 
   return { ...computeLevel(xp), streak, xp };
+}
+
+const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/**
+ * The current week's 7 day-dots (Mon→Sun) for the journal header.
+ * @returns {{label:string,state:'done'|'today'|'pending'}[]}
+ */
+export function computeWeekDots(entries, todayTs) {
+  const withEntry = new Set(entries.map((e) => dayIndex(e.ts)));
+  const todayIdx = dayIndex(todayTs);
+  const dow = new Date(Number(todayTs)).getUTCDay(); // 0=Sun … 6=Sat
+  const mondayIdx = todayIdx - ((dow + 6) % 7); // back up to this week's Monday
+  return WEEK_LABELS.map((label, i) => {
+    const idx = mondayIdx + i;
+    const state = withEntry.has(idx) ? 'done' : idx === todayIdx ? 'today' : 'pending';
+    return { label, state };
+  });
 }
 
 /** Rising-cost level curve. Level 1 starts at 0 XP; each level costs ~40% more. */
@@ -297,13 +317,14 @@ export function analyze(entries = [], opts = {}) {
   const triggers = extractTriggers(list);
   const moodTrend = computeMoodTrend(list);
   const sentiment = aggregateSentiment(list);
-  const game = computeGameState(list, todayTs);
+  const game = computeGameState(list, todayTs, opts.sessions);
 
   return {
     triggers,
     sentiment,
     moodTrend,
     patterns: detectPatterns(list, triggers, moodTrend),
+    weekDots: computeWeekDots(list, todayTs),
     streak: game.streak,
     xp: game.xp,
     level: game.level,
@@ -322,7 +343,8 @@ export function analysisKey(entries = [], opts = {}) {
   const list = Array.isArray(entries) ? entries : [];
   let lastTs = 0;
   for (const e of list) if (e && e.ts > lastTs) lastTs = e.ts;
-  return `${list.length}:${lastTs}:${opts.exam || ''}:${opts.examDate || ''}:${opts.today || ''}`;
+  const sessions = Array.isArray(opts.sessions) ? opts.sessions.length : 0;
+  return `${list.length}:${lastTs}:${sessions}:${opts.exam || ''}:${opts.examDate || ''}:${opts.today || ''}`;
 }
 
 /**

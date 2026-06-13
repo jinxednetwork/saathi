@@ -1,17 +1,18 @@
 /**
  * app.js — bootstrap & orchestration. Browser only.
  *
- * Wires the pieces together: storage (persistence) -> engine (memoized
- * analysis) -> prompts (grounding + safety) -> provider (Ollama or fallback)
- * -> ui (DOM). Holds the single source of truth (`state`) and decides when to
- * recompute, persist, celebrate, and gate on crisis. No analysis or DOM logic
+ * Marries the Saathi design (rendered by ui.js) to the real engine + providers:
+ * storage → engine (memoized analysis) → prompts (grounding + safety) →
+ * provider (local Ollama, with graceful fallback) → ui. Holds the single source
+ * of truth (`state`), decides when to recompute, persist, celebrate, and gate on
+ * crisis. Voice goes through the local Whisper server. No analysis/DOM logic
  * lives here — only coordination.
  */
 
 import * as storage from './storage.js';
 import { createMemoizedAnalyze, dayIndex } from './engine.js';
 import { buildMessages, safetyGate, crisisReply } from './prompts.js';
-import { detectProvider } from './ai-provider.js';
+import { detectProvider, LocalProvider } from './ai-provider.js';
 import { detectVoice, transcribeBlob } from './voice.js';
 import { createAudio } from './audio.js';
 import { HELPLINES } from './lexicons.js';
@@ -22,12 +23,19 @@ const DAY_MS = 86400000;
 const state = storage.load();
 const analyze = createMemoizedAnalyze();
 const audio = createAudio({ muted: state.settings.muted });
+const localProvider = new LocalProvider();
 
-let provider = null; // resolved async; null until detectProvider settles
+let provider = localProvider; // resolved async; stays local until Ollama is found
+let forcedOffline = false;
 let prev = { level: 0, streak: 0 };
+let lastInsights = null;
+let journalCtx = {}; // { fromFocus, focusMin }
 
 const ui = initUI({
+  onFinishOnboard,
+  onMascotChange,
   onJournalSave,
+  onMoodPicked,
   onSendMessage,
   onSettingsChange,
   onExport,
@@ -37,7 +45,9 @@ const ui = initUI({
   onFocusComplete,
   onFocusLengthChange,
   onReflectJournal,
-  onReflectAsk
+  onReflectAsk,
+  onToggleOffline,
+  onRebuild
 });
 
 boot();
@@ -45,114 +55,178 @@ boot();
 // --- lifecycle --------------------------------------------------------------
 
 function boot() {
+  ui.renderMascot(state.mascot);
   ui.applySettings(state.settings);
-  applyMotionAndSound();
-  ui.renderEntries(state.entries);
+  ui.setReducedMotion(state.settings.reducedMotion);
   ui.renderChatHistory(state.chat);
-  ui.renderFocusCount(sessionsToday());
+  renderSuggested();
+
   const insights = recompute();
   prev = { level: insights.level, streak: insights.streak };
-  maybeShowCrisis(insights);
-  ui.setView('journal');
 
-  // Probe the local Ollama; fall back gracefully. Uses the real fetch here.
+  ui.setOnboarded(state.onboarded); // shows onboarding + hides tab views when false
+  if (insights.crisis.flagged) ui.showCrisis(HELPLINES);
+
+  // Probe local Ollama; fall back to the (already-active) local provider.
   detectProvider(window.fetch.bind(window))
-    .then((p) => {
-      provider = p;
-      ui.setOffline(p.name !== 'ollama');
-    })
-    .catch(() => {
-      ui.setOffline(true);
-    });
+    .then((p) => { provider = p; syncOffline(); })
+    .catch(() => { provider = localProvider; syncOffline(); });
 
-  // Probe the optional local Whisper server; reveal the mic only if present.
+  // Probe optional local Whisper; reveal mic only if present.
   detectVoice(window.fetch.bind(window))
-    .then((available) => { if (available) ui.enableVoice(); })
-    .catch(() => { /* no voice — typing still works */ });
-}
-
-/** Analyse current entries (memoized) and push derived state into the UI. */
-function recompute() {
-  const insights = analyze(state.entries, analyzeOpts());
-  ui.renderProgress(insights);
-  ui.renderDashboard(insights);
-  ui.setMascotFromInsights(insights);
-  return insights;
+    .then((ok) => { if (ok) ui.enableVoice(); })
+    .catch(() => {});
 }
 
 function analyzeOpts() {
-  // Stable "today" (start of day) keeps memoization effective within a session.
   const today = Math.floor(Date.now() / DAY_MS) * DAY_MS;
-  return { exam: state.settings.exam, examDate: state.settings.examDate, today };
+  return { exam: state.settings.exam, examDate: state.settings.examDate, sessions: state.sessions, today };
 }
 
-// --- handlers ---------------------------------------------------------------
+/** Recompute insights (memoized) and push derived state into the UI. */
+function recompute() {
+  const insights = analyze(state.entries, analyzeOpts());
+  lastInsights = insights;
+  ui.renderProgress(insights);
+  ui.renderJournal(insights, journalCtx);
+  ui.renderDashboard(insights);
+  ui.refreshMascots(insights);
+  return insights;
+}
+
+// --- onboarding -------------------------------------------------------------
+
+function onMascotChange(cfg) {
+  state.mascot = { ...state.mascot, ...cfg };
+  storage.save(state);
+}
+
+function onFinishOnboard(cfg) {
+  state.mascot = { ...state.mascot, ...cfg };
+  state.onboarded = true;
+  storage.save(state);
+  ui.renderMascot(state.mascot);
+  ui.setOnboarded(true);
+  ui.refreshMascots(lastInsights);
+  ui.setView('journal');
+  audio.chime();
+}
+
+function onRebuild() {
+  state.onboarded = false;
+  storage.save(state);
+  ui.setOnboarded(false);
+  document.getElementById('view-onboarding').hidden = false;
+  ui.renderMascot(state.mascot);
+}
+
+// --- journal ----------------------------------------------------------------
+
+function onMoodPicked() {
+  // Refresh the mood-aware prompt + mascot expression live.
+  if (lastInsights) { ui.renderJournal(lastInsights, journalCtx); ui.refreshMascots(lastInsights); }
+}
 
 function onJournalSave({ text, mood }) {
-  state.entries.push({ text, mood, ts: Date.now() });
+  // SAFETY: deterministic crisis check before any reward/gamification.
+  if (text && safetyGate(text, lastInsights || {}).gated) {
+    ui.showCrisis(HELPLINES);
+    return;
+  }
+  state.entries.push({ text: text || '', mood, ts: Date.now() });
   storage.save(state);
-  ui.renderEntries(state.entries);
 
   const insights = recompute();
   ui.announce('Entry saved.');
 
-  if (insights.crisis.flagged) {
-    maybeShowCrisis(insights);
-    audio.chime();
-  } else {
-    handleProgressChange(insights);
-  }
+  // Choose ONE reward moment (mirrors the design's save loop).
+  let overlay = 'reward';
+  if (insights.streak === 7 && prev.streak !== 7) overlay = 'mile';
+  else if (insights.level > prev.level) overlay = 'level';
+
+  if (overlay === 'level') { audio.levelUp(); ui.showOverlay('level', { level: insights.level }); }
+  else if (overlay === 'mile') { audio.levelUp(); ui.showOverlay('mile', {}); }
+  else { audio.chime(); ui.showOverlay('reward', { streak: insights.streak }); }
+
   prev = { level: insights.level, streak: insights.streak };
+
+  // Clear the page for next time.
+  document.getElementById('journal-text').value = '';
+  ui.resetMood();
+  journalCtx = {};
 }
 
-async function onSendMessage(text) {
-  const insights = analyze(state.entries, analyzeOpts());
+// --- companion / chat -------------------------------------------------------
 
-  // SAFETY: deterministic gate runs BEFORE any model call.
+function activeProvider() { return forcedOffline ? localProvider : provider; }
+
+function isOffline() { return forcedOffline || activeProvider().name !== 'ollama'; }
+
+function syncOffline() { ui.setOffline(isOffline()); renderSuggested(); }
+
+function onToggleOffline() { forcedOffline = !forcedOffline; syncOffline(); }
+
+function renderSuggested() {
+  if (isOffline()) {
+    ui.renderSuggested([
+      { text: 'Try a grounding step', onClick: () => gotoBreathe() },
+      { text: 'Breathe with me', onClick: () => gotoBreathe() }
+    ]);
+  } else {
+    const prompts = ["I'm anxious about NEET", "I can't focus today", 'I keep comparing myself'];
+    ui.renderSuggested(prompts.map((t) => ({ text: t, onClick: () => onSendMessage(t) })));
+  }
+}
+
+function gotoBreathe() { ui.setView('breathe'); onViewChange('breathe'); }
+
+async function onSendMessage(text) {
+  const insights = lastInsights || analyze(state.entries, analyzeOpts());
   const gate = safetyGate(text, insights);
-  pushChat({ role: 'user', content: text });
+
+  pushChat({ role: 'me', content: text });
   ui.addChatMessage({ role: 'user', content: text });
 
   if (gate.gated) {
-    maybeShowCrisis(insights, text);
+    ui.showCrisis(HELPLINES);
     ui.addChatMessage({ role: 'assistant', content: gate.reply });
-    pushChat({ role: 'assistant', content: gate.reply });
+    pushChat({ role: 'saathi', content: gate.reply });
     return;
   }
 
-  if (!provider) {
-    const msg = 'Just a moment — getting ready…';
-    ui.addChatMessage({ role: 'assistant', content: msg });
-    return;
-  }
-
-  const node = ui.addChatMessage({ role: 'assistant', content: '' });
+  ui.setTyping(true);
   ui.setChatBusy(true);
   const messages = buildMessages(text, insights, recentTurns());
   let full = '';
+  let bubble = null;
   try {
-    full = await provider.chat(messages, {
+    full = await activeProvider().chat(messages, {
       insights,
       onToken: (tok) => {
+        if (!bubble) { ui.setTyping(false); bubble = ui.addChatMessage({ role: 'assistant', content: '' }); }
         full += tok;
-        node.textContent = full;
-        node.parentElement.parentElement.scrollTop = node.parentElement.parentElement.scrollHeight;
+        bubble.textContent = full;
+        bubble.parentElement.parentElement.scrollTop = bubble.parentElement.parentElement.scrollHeight;
       }
     });
   } catch {
     full = "I'm having trouble reaching the AI right now, but I'm still here. Try a slow breath, and tell me more whenever you're ready.";
-    node.textContent = full;
   } finally {
+    ui.setTyping(false);
     ui.setChatBusy(false);
   }
-  pushChat({ role: 'assistant', content: full });
+  if (!bubble) ui.addChatMessage({ role: 'assistant', content: full });
+  pushChat({ role: 'saathi', content: full });
 }
+
+// --- settings + data --------------------------------------------------------
 
 function onSettingsChange(next) {
   Object.assign(state.settings, next);
   storage.save(state);
-  applyMotionAndSound();
-  recompute(); // exam/date can change the countdown + grounding
+  audio.setMuted(state.settings.muted);
+  ui.setReducedMotion(state.settings.reducedMotion);
+  recompute();
 }
 
 function onExport() {
@@ -171,37 +245,42 @@ function onExport() {
 
 function onWipe() {
   storage.wipe();
-  state.entries = [];
-  state.chat = [];
-  state.settings = storage.defaultState().settings;
+  const fresh = storage.defaultState();
+  fresh.mascot = state.mascot; // keep the companion they built
+  fresh.onboarded = state.onboarded;
+  Object.assign(state, fresh);
   storage.save(state);
   ui.applySettings(state.settings);
-  applyMotionAndSound();
-  ui.renderEntries(state.entries);
+  ui.setReducedMotion(false);
   ui.renderChatHistory(state.chat);
-  ui.hideCrisis();
+  ui.hideOverlay();
   prev = { level: 0, streak: 0 };
+  journalCtx = {};
   recompute();
   ui.announce('All your data has been wiped from this device.');
 }
 
+// --- navigation -------------------------------------------------------------
+
 function onViewChange(view) {
-  if (view !== 'mindfulness') ui.stopBreathing();
+  if (view !== 'breathe') ui.stopBreathing();
   if (view !== 'focus') ui.pauseFocus();
 }
 
-/** Transcribe a recorded clip via the LOCAL Whisper server. Audio stays on-device. */
+// --- voice ------------------------------------------------------------------
+
 async function onTranscribe(blob) {
   return transcribeBlob(blob, { fetchFn: window.fetch.bind(window) });
 }
 
-/** A focus session finished: record it, celebrate, and nudge a reflection. */
+// --- focus ------------------------------------------------------------------
+
 function onFocusComplete(minutes) {
   state.sessions.push({ minutes, ts: Date.now() });
   storage.save(state);
-  ui.renderFocusCount(sessionsToday());
+  const insights = recompute();
+  prev = { level: insights.level, streak: insights.streak };
   audio.levelUp();
-  ui.celebrate();
 }
 
 function onFocusLengthChange(minutes) {
@@ -209,57 +288,34 @@ function onFocusLengthChange(minutes) {
   storage.save(state);
 }
 
-/** Reflect → Journal: jump to the journal with the session pre-framed. */
-function onReflectJournal(minutes) {
-  ui.focusField('journal-text');
+function onReflectJournal(minutes, focusMood) {
+  journalCtx = { fromFocus: true, focusMin: minutes };
+  if (focusMood) ui.setMood(focusMood);
+  ui.setView('journal');
+  onViewChange('journal');
+  ui.renderJournal(lastInsights, journalCtx);
+  ui.refreshMascots(lastInsights);
   ui.announce(`You just focused for ${minutes} minutes. Jot down how it went.`);
+  document.getElementById('journal-text').focus();
 }
 
-/** Reflect → Companion: jump to the live chat to ask a doubt. */
-function onReflectAsk() {
-  ui.focusField('chat-input');
+function onReflectAsk(minutes) {
+  const opener = "How did that session go? If a problem's bugging you, tell me what you got stuck on — we'll untangle it together.";
+  ui.addChatMessage({ role: 'assistant', content: opener });
+  pushChat({ role: 'saathi', content: opener });
+  ui.setView('companion');
+  onViewChange('companion');
+  document.getElementById('chat-input').focus();
 }
 
 // --- helpers ----------------------------------------------------------------
 
-function handleProgressChange(insights) {
-  if (insights.level > prev.level) {
-    audio.levelUp();
-    ui.celebrate();
-    ui.announce(`Level up! You reached level ${insights.level}.`);
-  } else if (insights.streak > prev.streak) {
-    audio.streak();
-    ui.announce(`${insights.streak}-day streak! Keep it going.`);
-  } else {
-    audio.chime();
-  }
-}
-
-function maybeShowCrisis(insights, extraText) {
-  if (insights.crisis.flagged || (extraText && safetyGate(extraText, insights).gated)) {
-    ui.showCrisis(crisisReply(), HELPLINES);
-  }
-}
-
-function applyMotionAndSound() {
-  audio.setMuted(state.settings.muted);
-  ui.setReducedMotion(state.settings.reducedMotion);
-}
-
 function pushChat(msg) {
   state.chat.push({ ...msg, ts: Date.now() });
-  // Keep chat history bounded so storage stays small.
   if (state.chat.length > 100) state.chat = state.chat.slice(-100);
   storage.save(state);
 }
 
-/** Last few turns for conversational context (system message added by prompts). */
 function recentTurns() {
-  return state.chat.slice(-8).map(({ role, content }) => ({ role, content }));
-}
-
-/** Count of focus sessions completed today (for the gamified counter). */
-function sessionsToday() {
-  const today = dayIndex(Date.now());
-  return state.sessions.filter((s) => dayIndex(s.ts) === today).length;
+  return state.chat.slice(-8).map((m) => ({ role: m.role === 'me' ? 'user' : (m.role === 'saathi' ? 'assistant' : m.role), content: m.content }));
 }

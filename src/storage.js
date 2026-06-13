@@ -13,6 +13,8 @@ const KEY = 'saathi.v1';
 export function defaultState() {
   return {
     version: 1,
+    onboarded: false, // first-run mascot builder shown until true
+    mascot: { shape: 'pentagon', color: '#639922', accessory: 'sprout', name: 'Pip' },
     entries: [], // { text, mood:1..5, ts }
     chat: [], // { role, content, ts }
     sessions: [], // completed focus sessions: { minutes, ts }
@@ -36,6 +38,7 @@ export function load() {
     return {
       ...base,
       ...parsed,
+      mascot: { ...base.mascot, ...(parsed.mascot || {}) },
       entries: Array.isArray(parsed.entries) ? parsed.entries : [],
       chat: Array.isArray(parsed.chat) ? parsed.chat : [],
       sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],

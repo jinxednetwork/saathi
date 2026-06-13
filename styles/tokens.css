@@ -1,0 +1,122 @@
+/* ============================================================
+   Saathi — Design System tokens  (source of truth)
+   Adopted verbatim from the design handoff (tokens.css), with the
+   automatic prefers-color-scheme dark switch intentionally omitted:
+   the mascot/icon SVGs use a fixed ink, so an auto dark theme would
+   hide faces. The explicit [data-theme="dark"] scaffold is kept for
+   future use. Type: Fredoka (display/UI, 500) + Nunito (body, 400/500).
+   ============================================================ */
+
+:root {
+  /* ---- Color · base & surfaces ---- */
+  --bg:               #F7F4E9; /* warm cream app background — never stark white */
+  --surface:          #FFFFFF; /* cards, inputs, speech bubbles */
+  --surface-sunken:   #EFEBDD; /* inset/pressed, pending dots, input borders */
+  --canvas:           #E7E5DD; /* neutral page behind device frame */
+
+  /* ---- Color · brand & semantic ---- */
+  --primary:          #639922; /* CTAs, mascot default, active states */
+  --primary-soft:     #EAF3DE; /* selected fills, success-tint cards, chips */
+  --primary-ink:      #3B6D11; /* text/icons on --primary-soft */
+
+  --reward:           #EF9F27; /* XP / streak / confetti accents (sparingly) */
+  --reward-soft:      #FAEEDA; /* reward stat cards, streak chip bg */
+  --reward-ink:       #854F0B; /* text on --reward-soft */
+
+  --crisis-surface:   #E6F1FB; /* helpline panel — calm blue, never red */
+  --crisis-ink:       #0C447C; /* text on crisis surface */
+  --crisis-ink-2:     #3A6EA5; /* secondary text on crisis surface */
+
+  /* ---- Color · text ---- */
+  --ink:              #2C2C2A; /* primary text */
+  --ink-muted:        #5F5E5A; /* secondary text */
+  --ink-hint:         #888780; /* placeholders, inactive, hints */
+
+  /* ---- Color · mood scale (sad→happy). Shape+label also encode level. ---- */
+  --mood-1:           #C25B3F;
+  --mood-2:           #D08A4A;
+  --mood-3:           #B6A93C;
+  --mood-4:           #7DA93A;
+  --mood-5:           #639922;
+
+  /* ---- Color · mascot palette (user-selectable) ---- */
+  --mascot-sage:      #639922;
+  --mascot-blue:      #5B8DB8;
+  --mascot-terracotta:#E08A5B;
+  --mascot-lavender:  #9B86C4;
+  --mascot-gold:      #E0A93E;
+  --mascot-teal:      #4FA399;
+
+  /* ---- Typography ---- */
+  --font-display: "Fredoka", system-ui, sans-serif; /* weight 500 only */
+  --font-body:    "Nunito", system-ui, sans-serif;  /* weights 400 / 500 */
+  --weight-regular: 400;
+  --weight-medium:  500; /* deliberately no 600/700 — keeps the tone soft */
+
+  --text-hint:     11px;
+  --text-label:    13px;
+  --text-body:     16px; /* min 16px on inputs to avoid iOS zoom */
+  --text-screen:   18px;
+  --text-display:  23px;
+  --text-numeric-sm: 34px; /* level */
+  --text-numeric-lg: 54px; /* streak / focus timer */
+  --leading-body:  1.6;    /* journaling: 1.5–1.7 */
+  --leading-tight: 1.15;
+
+  /* ---- Spacing · 4px base ---- */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  12px;
+  --space-lg:  16px;
+  --space-xl:  24px;
+  --space-2xl: 32px;
+
+  /* ---- Radius ---- */
+  --radius-sm:   8px;
+  --radius-md:   16px;  /* default */
+  --radius-lg:   20px;
+  --radius-pill: 28px;  /* cards / CTAs */
+  --radius-full: 9999px;/* dots, avatars, swatches, mascot bubble */
+
+  /* ---- Motion ---- */
+  --dur-micro:  150ms;
+  --dur-view:   200ms;
+  --dur-reward: 350ms;
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);   /* view transitions */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);/* reward pop/bounce */
+
+  /* ---- Elevation (keep subtle / flat) ---- */
+  --shadow-card:   0 1px 2px rgba(44,44,42,.04);
+  --shadow-sheet:  0 -12px 40px -16px rgba(44,50,20,.25);
+  --shadow-device: 0 40px 80px -28px rgba(40,50,20,.55);
+}
+
+/* Explicit dark-theme scaffold (opt-in via data-theme="dark"); not auto-applied. */
+:root[data-theme="dark"], .theme-dark {
+  --bg:             #1B1A16;
+  --surface:        #262420;
+  --surface-sunken: #201E1A;
+  --canvas:         #121210;
+  --primary:        #7CB534;
+  --primary-soft:   #2E3A1E;
+  --primary-ink:    #B7DA86;
+  --reward:         #F2AA3D;
+  --reward-soft:    #3A2E18;
+  --reward-ink:     #F3C57E;
+  --crisis-surface: #15293D;
+  --crisis-ink:     #BFD8F0;
+  --crisis-ink-2:   #8DB2D6;
+  --ink:            #ECE9E0;
+  --ink-muted:      #B4B0A6;
+  --ink-hint:       #847F75;
+}
+
+/* Reduced-motion: collapse every transition/animation to instant. No element
+   may depend on an entrance animation to be visible. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
