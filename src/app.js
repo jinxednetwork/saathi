@@ -9,9 +9,10 @@
  */
 
 import * as storage from './storage.js';
-import { createMemoizedAnalyze } from './engine.js';
+import { createMemoizedAnalyze, dayIndex } from './engine.js';
 import { buildMessages, safetyGate, crisisReply } from './prompts.js';
 import { detectProvider } from './ai-provider.js';
+import { detectVoice, transcribeBlob } from './voice.js';
 import { createAudio } from './audio.js';
 import { HELPLINES } from './lexicons.js';
 import { initUI } from './ui.js';
@@ -31,7 +32,12 @@ const ui = initUI({
   onSettingsChange,
   onExport,
   onWipe,
-  onViewChange
+  onViewChange,
+  onTranscribe,
+  onFocusComplete,
+  onFocusLengthChange,
+  onReflectJournal,
+  onReflectAsk
 });
 
 boot();
@@ -43,6 +49,7 @@ function boot() {
   applyMotionAndSound();
   ui.renderEntries(state.entries);
   ui.renderChatHistory(state.chat);
+  ui.renderFocusCount(sessionsToday());
   const insights = recompute();
   prev = { level: insights.level, streak: insights.streak };
   maybeShowCrisis(insights);
@@ -57,6 +64,11 @@ function boot() {
     .catch(() => {
       ui.setOffline(true);
     });
+
+  // Probe the optional local Whisper server; reveal the mic only if present.
+  detectVoice(window.fetch.bind(window))
+    .then((available) => { if (available) ui.enableVoice(); })
+    .catch(() => { /* no voice — typing still works */ });
 }
 
 /** Analyse current entries (memoized) and push derived state into the UI. */
@@ -175,6 +187,37 @@ function onWipe() {
 
 function onViewChange(view) {
   if (view !== 'mindfulness') ui.stopBreathing();
+  if (view !== 'focus') ui.pauseFocus();
+}
+
+/** Transcribe a recorded clip via the LOCAL Whisper server. Audio stays on-device. */
+async function onTranscribe(blob) {
+  return transcribeBlob(blob, { fetchFn: window.fetch.bind(window) });
+}
+
+/** A focus session finished: record it, celebrate, and nudge a reflection. */
+function onFocusComplete(minutes) {
+  state.sessions.push({ minutes, ts: Date.now() });
+  storage.save(state);
+  ui.renderFocusCount(sessionsToday());
+  audio.levelUp();
+  ui.celebrate();
+}
+
+function onFocusLengthChange(minutes) {
+  state.settings.focusMinutes = minutes;
+  storage.save(state);
+}
+
+/** Reflect → Journal: jump to the journal with the session pre-framed. */
+function onReflectJournal(minutes) {
+  ui.focusField('journal-text');
+  ui.announce(`You just focused for ${minutes} minutes. Jot down how it went.`);
+}
+
+/** Reflect → Companion: jump to the live chat to ask a doubt. */
+function onReflectAsk() {
+  ui.focusField('chat-input');
 }
 
 // --- helpers ----------------------------------------------------------------
@@ -213,4 +256,10 @@ function pushChat(msg) {
 /** Last few turns for conversational context (system message added by prompts). */
 function recentTurns() {
   return state.chat.slice(-8).map(({ role, content }) => ({ role, content }));
+}
+
+/** Count of focus sessions completed today (for the gamified counter). */
+function sessionsToday() {
+  const today = dayIndex(Date.now());
+  return state.sessions.filter((s) => dayIndex(s.ts) === today).length;
 }

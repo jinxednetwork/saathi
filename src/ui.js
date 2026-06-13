@@ -9,6 +9,7 @@
  */
 
 import { createMascot, expressionFor } from './mascot.js';
+import { createRecorder } from './voice.js';
 
 const MOODS = [
   { value: 1, emoji: '😣', label: 'Awful' },
@@ -18,10 +19,12 @@ const MOODS = [
   { value: 5, emoji: '😄', label: 'Great' }
 ];
 
-const VIEWS = ['journal', 'companion', 'mindfulness', 'dashboard', 'settings'];
+const VIEWS = ['journal', 'companion', 'mindfulness', 'focus', 'dashboard', 'settings'];
 
 export function initUI(handlers = {}) {
   const $ = (id) => document.getElementById(id);
+  const announce = (text) => { $('live-region').textContent = text; };
+
   const mascot = createMascot({ state: 'idle' });
   $('mascot-mount').appendChild(mascot.element);
 
@@ -33,9 +36,12 @@ export function initUI(handlers = {}) {
   wireData($, handlers);
   wireCrisis($);
   const breathing = createBreathing($);
+  const focus = createFocusTimer($, handlers, announce);
+  const voice = createVoiceUI($, handlers);
 
   return {
     setView: (view) => setView($, view),
+    focusField: (field) => focusField($, field),
     renderProgress: (g) => renderProgress($, g),
     renderEntries: (entries) => renderEntries($, entries),
     renderDashboard: (insights) => renderDashboard($, insights),
@@ -45,13 +51,16 @@ export function initUI(handlers = {}) {
     showCrisis: (message, helplines) => showCrisis($, message, helplines),
     hideCrisis: () => { $('crisis-panel').hidden = true; },
     setOffline: (offline, text) => setOffline($, offline, text),
-    announce: (text) => { $('live-region').textContent = text; },
+    announce,
     celebrate: () => celebrate($),
     setMascot: (expr) => mascot.setExpression(expr),
     setMascotFromInsights: (insights) => mascot.setExpression(expressionFor(insights)),
-    applySettings: (settings) => applySettings($, settings),
+    applySettings: (settings) => { applySettings($, settings); focus.setLength(settings.focusMinutes); },
     setReducedMotion: (on) => document.body.classList.toggle('reduced-motion', !!on),
-    stopBreathing: () => breathing.stop()
+    stopBreathing: () => breathing.stop(),
+    pauseFocus: () => focus.pause(),
+    renderFocusCount: (n) => { $('focus-count').textContent = String(n); },
+    enableVoice: () => voice.enable()
   };
 }
 
@@ -99,8 +108,15 @@ function setView($, view) {
   document.querySelectorAll('.tab').forEach((btn) => {
     btn.setAttribute('aria-selected', String(btn.dataset.view === view));
   });
-  const main = $('main');
-  main.focus();
+  $('main').focus();
+}
+
+/** Switch to the view that owns a field, then focus it (used by the reflect loop). */
+function focusField($, field) {
+  const owner = field === 'chat-input' ? 'companion' : 'journal';
+  setView($, owner);
+  const el = $(field);
+  if (el) el.focus();
 }
 
 function wireJournal($, handlers) {
@@ -153,6 +169,78 @@ function wireCrisis($) {
   $('crisis-dismiss').addEventListener('click', () => {
     $('crisis-panel').hidden = true;
   });
+}
+
+// --- voice (mic) UI ---------------------------------------------------------
+
+/**
+ * Wires the mic buttons once voice is available. Owns the recorder + recording
+ * state; delegates the actual transcription to handlers.onTranscribe(blob),
+ * which app.js fulfils against the local Whisper server.
+ */
+function createVoiceUI($, handlers) {
+  const recorder = createRecorder();
+  const TARGETS = [
+    { mic: 'journal-mic', status: 'journal-voice-status', field: 'journal-text' },
+    { mic: 'chat-mic', status: null, field: 'chat-input' }
+  ];
+
+  function enable() {
+    document.querySelectorAll('[data-feature="voice"]').forEach((el) => { el.hidden = false; });
+    TARGETS.forEach(wire);
+  }
+
+  function wire(t) {
+    const btn = $(t.mic);
+    if (!btn || btn.dataset.wired) return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => toggle(t, btn));
+  }
+
+  function setStatus(t, text) {
+    if (t.status) $(t.status).textContent = text;
+    else $('live-region').textContent = text;
+  }
+
+  async function toggle(t, btn) {
+    if (recorder.isRecording()) return finish(t, btn);
+    try {
+      await recorder.start();
+      btn.setAttribute('aria-pressed', 'true');
+      setStatus(t, '🎙️ Listening… tap again to stop.');
+    } catch {
+      setStatus(t, 'Microphone unavailable — you can type instead.');
+    }
+  }
+
+  async function finish(t, btn) {
+    btn.setAttribute('aria-pressed', 'false');
+    btn.disabled = true;
+    setStatus(t, 'Transcribing on your device…');
+    try {
+      const blob = await recorder.stop();
+      const text = await handlers.onTranscribe(blob);
+      if (text) {
+        appendToField($, t.field, text);
+        setStatus(t, 'Added — edit it however you like.');
+      } else {
+        setStatus(t, "Didn't catch that — try again or type.");
+      }
+    } catch {
+      setStatus(t, 'Transcription failed — you can type instead.');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  return { enable };
+}
+
+function appendToField($, fieldId, text) {
+  const el = $(fieldId);
+  if (!el) return;
+  el.value = el.value ? `${el.value.trim()} ${text}` : text;
+  el.focus();
 }
 
 // --- rendering --------------------------------------------------------------
@@ -222,7 +310,6 @@ function addChatMessage($, msg) {
 }
 
 function renderDashboard($, insights) {
-  // Summary line.
   const summary = $('dash-summary');
   if (insights.entryCount === 0) {
     summary.textContent = 'Write a few journal entries and your insights will appear here.';
@@ -385,7 +472,6 @@ function createBreathing($) {
   ];
   const TOTAL_CYCLES = 4;
   let timer = null;
-  let progressTimer = null;
   let cycle = 0;
   let phaseIdx = 0;
 
@@ -437,8 +523,7 @@ function createBreathing($) {
 
   function stop() {
     if (timer) clearTimeout(timer);
-    if (progressTimer) clearInterval(progressTimer);
-    timer = progressTimer = null;
+    timer = null;
     circle.classList.remove('inhale', 'hold', 'exhale');
     startBtn.hidden = false;
     stopBtn.hidden = true;
@@ -452,6 +537,157 @@ function createBreathing($) {
   });
 
   return { start, stop };
+}
+
+// --- focus / pomodoro timer -------------------------------------------------
+
+/**
+ * Circular Pomodoro timer. On completion it celebrates, reports the session up
+ * to app.js (handlers.onFocusComplete), and reveals a reflection prompt that
+ * routes the student to Journal (to log the session) or the Companion (to ask a
+ * live doubt) — closing the study → reflect → resolve loop.
+ *
+ * Accessibility: role="timer" with aria-live="off" so it does NOT announce
+ * every second; meaningful moments are announced once via the live region.
+ */
+function createFocusTimer($, handlers, announce) {
+  const CIRC = 339.292; // 2πr, r = 54 (matches the SVG)
+  const MIN = 5;
+  const MAX = 60;
+
+  let lengthMin = 25;
+  let remaining = lengthMin * 60; // seconds
+  let running = false;
+  let ticker = null;
+
+  const timeEl = $('focus-time');
+  const lengthEl = $('focus-length');
+  const ring = $('focus-progress');
+  const status = $('focus-status');
+  const startBtn = $('focus-start');
+  const pauseBtn = $('focus-pause');
+  const resetBtn = $('focus-reset');
+  const minusBtn = $('focus-minus');
+  const plusBtn = $('focus-plus');
+  const reflect = $('focus-reflect');
+
+  // Mascot lives in the centre of the ring.
+  const buddy = createMascot({ state: 'happy' });
+  $('focus-mascot').appendChild(buddy.element);
+
+  function fmt(totalSec) {
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  function render() {
+    timeEl.textContent = fmt(remaining);
+    lengthEl.textContent = String(lengthMin);
+    const total = lengthMin * 60;
+    const frac = total ? (total - remaining) / total : 0;
+    ring.style.strokeDashoffset = String(CIRC * (1 - frac));
+    ring.classList.toggle('is-running', running);
+  }
+
+  function setLength(min) {
+    const n = Number(min);
+    if (!Number.isFinite(n)) return;
+    lengthMin = Math.min(MAX, Math.max(MIN, Math.round(n / 5) * 5 || 25));
+    if (!running) remaining = lengthMin * 60;
+    render();
+  }
+
+  function adjust(delta) {
+    if (running) return; // don't change a session mid-flight
+    setLength(lengthMin + delta);
+    if (handlers.onFocusLengthChange) handlers.onFocusLengthChange(lengthMin);
+  }
+
+  function tick() {
+    remaining -= 1;
+    if (remaining <= 0) {
+      remaining = 0;
+      render();
+      return complete();
+    }
+    render();
+  }
+
+  function start() {
+    if (running) return;
+    reflect.hidden = true;
+    if (remaining <= 0) remaining = lengthMin * 60;
+    running = true;
+    startBtn.hidden = true;
+    pauseBtn.hidden = false;
+    resetBtn.hidden = false;
+    buddy.setExpression('cheer');
+    status.textContent = `Focusing — ${fmt(remaining)} to go. You've got this.`;
+    announce(`Focus session started: ${lengthMin} minutes.`);
+    ticker = setInterval(tick, 1000);
+    render();
+  }
+
+  function pause() {
+    if (!running) return;
+    clearInterval(ticker);
+    ticker = null;
+    running = false;
+    startBtn.hidden = false;
+    startBtn.textContent = 'Resume';
+    pauseBtn.hidden = true;
+    buddy.setExpression('idle');
+    status.textContent = `Paused at ${fmt(remaining)}.`;
+    render();
+  }
+
+  function reset() {
+    clearInterval(ticker);
+    ticker = null;
+    running = false;
+    remaining = lengthMin * 60;
+    startBtn.hidden = false;
+    startBtn.textContent = 'Start';
+    pauseBtn.hidden = true;
+    resetBtn.hidden = true;
+    reflect.hidden = true;
+    buddy.setExpression('happy');
+    status.textContent = 'Set your timer and press start.';
+    render();
+  }
+
+  function complete() {
+    clearInterval(ticker);
+    ticker = null;
+    running = false;
+    startBtn.hidden = false;
+    startBtn.textContent = 'Start';
+    pauseBtn.hidden = true;
+    resetBtn.hidden = true;
+    buddy.setExpression('cheer');
+    status.textContent = 'Session complete! 🎉';
+    announce(`Focus session complete. ${lengthMin} minutes done — well done!`);
+    reflect.hidden = false;
+    if (handlers.onFocusComplete) handlers.onFocusComplete(lengthMin);
+  }
+
+  minusBtn.addEventListener('click', () => adjust(-5));
+  plusBtn.addEventListener('click', () => adjust(5));
+  startBtn.addEventListener('click', start);
+  pauseBtn.addEventListener('click', pause);
+  resetBtn.addEventListener('click', reset);
+  $('reflect-journal').addEventListener('click', () => {
+    reflect.hidden = true;
+    if (handlers.onReflectJournal) handlers.onReflectJournal(lengthMin);
+  });
+  $('reflect-ask').addEventListener('click', () => {
+    reflect.hidden = true;
+    if (handlers.onReflectAsk) handlers.onReflectAsk(lengthMin);
+  });
+
+  render();
+  return { setLength, pause };
 }
 
 // --- helpers ----------------------------------------------------------------

@@ -9,6 +9,7 @@ import {
   crisisReply
 } from '../src/prompts.js';
 import { analyze } from '../src/engine.js';
+import { EXAM_CONTEXT, examContextLine } from '../src/exam-context.js';
 
 const TODAY = Date.UTC(2026, 5, 13);
 
@@ -37,6 +38,33 @@ test('buildContext grounds the prompt in insights', () => {
 
 test('buildContext is empty for empty insights', () => {
   assert.equal(buildContext({}), '');
+});
+
+test('system prompt redirects factual exam questions to official sources', () => {
+  const sys = buildSystemPrompt().toLowerCase();
+  assert.ok(sys.includes('official source'));
+  assert.ok(sys.includes('not exam information'));
+});
+
+test('buildContext injects the per-exam emotional context for a known exam', () => {
+  const ctx = buildContext({ exam: 'UPSC', examCountdown: 120 });
+  assert.ok(ctx.includes('UPSC'));
+  assert.ok(ctx.includes(EXAM_CONTEXT.UPSC));
+});
+
+test('buildContext omits exam context for an unknown exam value', () => {
+  const ctx = buildContext({ exam: 'Mystery Exam' });
+  assert.ok(ctx.includes('Mystery Exam')); // the plain "Exam: …" line still appears
+  assert.equal(examContextLine('Mystery Exam'), '');
+});
+
+test('examContextLine returns a non-empty line for every dropdown exam', () => {
+  const exams = ['NEET', 'JEE', 'CUET', 'CAT', 'GATE', 'UPSC', 'Board exams', 'Other'];
+  for (const exam of exams) {
+    assert.ok(examContextLine(exam).length > 0, `${exam} should have context`);
+  }
+  assert.equal(examContextLine(''), '');
+  assert.equal(examContextLine(undefined), '');
 });
 
 test('buildMessages places system first, user last, drops stray system turns', () => {

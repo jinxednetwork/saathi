@@ -9,6 +9,7 @@
 
 import { detectCrisis } from './engine.js';
 import { HELPLINES } from './lexicons.js';
+import { examContextLine } from './exam-context.js';
 
 /**
  * The companion's persona + hard safety rules. Returned as a single system
@@ -22,6 +23,9 @@ export function buildSystemPrompt() {
     'small, practical coping steps (breathing, study breaks, sleep, reframing).',
     'Keep replies short, kind, and concrete. Write in plain text only — no markdown,',
     'no code, no HTML. Never diagnose.',
+    'For factual exam details (dates, cutoffs, syllabus, eligibility), do not state',
+    'them — gently point the student to the official source. Your role is emotional',
+    'support, not exam information.',
     '',
     'SAFETY RULES (absolute):',
     '- You are NOT a substitute for professional help and you say so when relevant.',
@@ -45,6 +49,8 @@ export function buildContext(insights = {}) {
     lines.push(
       `Exam: ${insights.exam}${cd != null ? ` (${cd} day${cd === 1 ? '' : 's'} away)` : ''}.`
     );
+    const examLine = examContextLine(insights.exam);
+    if (examLine) lines.push(examLine);
   }
   if (insights.sentiment) {
     lines.push(`Recent overall mood: ${insights.sentiment.label}.`);

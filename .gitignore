@@ -1,6 +1,8 @@
 node_modules/
 test-results/
-dist/
+playwright-report/
 .playwright-mcp/
+dist/
 *.log
 .DS_Store
+saathi-*.png

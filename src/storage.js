@@ -15,11 +15,13 @@ export function defaultState() {
     version: 1,
     entries: [], // { text, mood:1..5, ts }
     chat: [], // { role, content, ts }
+    sessions: [], // completed focus sessions: { minutes, ts }
     settings: {
       exam: '',
       examDate: '',
       muted: false,
-      reducedMotion: false // user override; OS preference is also honoured
+      reducedMotion: false, // user override; OS preference is also honoured
+      focusMinutes: 25 // default Pomodoro length
     }
   };
 }
@@ -36,6 +38,7 @@ export function load() {
       ...parsed,
       entries: Array.isArray(parsed.entries) ? parsed.entries : [],
       chat: Array.isArray(parsed.chat) ? parsed.chat : [],
+      sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
       settings: { ...base.settings, ...(parsed.settings || {}) }
     };
   } catch {
