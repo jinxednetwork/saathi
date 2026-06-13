@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Unit tests (node --test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Zero runtime dependencies — nothing to install. The pure analysis core
+      # (engine, crisis, prompts, provider) is tested with the built-in runner.
+      # No Ollama and no browser are needed: the provider tests mock fetch and
+      # the app degrades to the tested fallback path.
+      - name: Run tests
+        run: npm test

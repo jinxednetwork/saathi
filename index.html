@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Strict CSP: only self + the local Ollama. No inline/eval, no CDN, no secrets. -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; connect-src 'self' http://localhost:11434; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'" />
+  <meta name="description" content="Saathi — a private, on-device GenAI wellness companion for students under exam pressure." />
+  <title>Saathi · your exam wellness companion</title>
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body data-view="journal">
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- Calm banner shown when the AI companion is offline (fallback mode). -->
+  <div id="offline-banner" class="banner" role="status" hidden>
+    <span class="banner__dot" aria-hidden="true"></span>
+    <span id="offline-banner-text">AI companion is offline — everything still works. Start Ollama for richer chat.</span>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span id="mascot-mount" class="mascot" aria-hidden="false"></span>
+      <span class="topbar__title">Saathi</span>
+    </div>
+    <dl class="hud" aria-label="Your progress">
+      <div class="hud__item">
+        <dt>Streak</dt>
+        <dd><span id="hud-streak">0</span><span class="hud__unit"> 🔥</span></dd>
+      </div>
+      <div class="hud__item">
+        <dt>Level</dt>
+        <dd id="hud-level">1</dd>
+      </div>
+      <div class="hud__item hud__item--xp">
+        <dt>XP</dt>
+        <dd>
+          <span id="hud-xp">0</span>
+          <span class="xpbar" aria-hidden="true"><span id="hud-xpbar" class="xpbar__fill"></span></span>
+        </dd>
+      </div>
+    </dl>
+  </header>
+
+  <nav class="tabs" aria-label="Sections">
+    <button class="tab" data-view="journal" aria-controls="view-journal" aria-selected="true">📝 Journal</button>
+    <button class="tab" data-view="companion" aria-controls="view-companion" aria-selected="false">💬 Companion</button>
+    <button class="tab" data-view="mindfulness" aria-controls="view-mindfulness" aria-selected="false">🧘 Breathe</button>
+    <button class="tab" data-view="dashboard" aria-controls="view-dashboard" aria-selected="false">📊 Insights</button>
+    <button class="tab" data-view="settings" aria-controls="view-settings" aria-selected="false">⚙️ Settings</button>
+  </nav>
+
+  <main id="main" tabindex="-1">
+    <!-- Crisis panel: rendered ABOVE everything when a crisis signal is detected. -->
+    <section id="crisis-panel" class="crisis" role="alertdialog" aria-labelledby="crisis-title" hidden>
+      <h2 id="crisis-title">You don't have to face this alone 💙</h2>
+      <p id="crisis-message"></p>
+      <ul id="crisis-helplines" class="crisis__lines"></ul>
+      <p class="crisis__note">Saathi is a supportive companion, not a substitute for professional help.</p>
+      <button id="crisis-dismiss" class="btn">I understand</button>
+    </section>
+
+    <!-- JOURNAL -->
+    <section id="view-journal" class="view" aria-labelledby="journal-h">
+      <h1 id="journal-h">How are you feeling today?</h1>
+      <form id="journal-form" class="card">
+        <label class="field">
+          <span class="field__label">Write it out — whatever is on your mind</span>
+          <textarea id="journal-text" rows="5" placeholder="Today I felt…" required></textarea>
+        </label>
+        <fieldset class="mood">
+          <legend>Mood right now</legend>
+          <div class="mood__options" id="mood-options"></div>
+        </fieldset>
+        <button type="submit" class="btn btn--primary">Save entry</button>
+      </form>
+      <h2 class="section-h">Recent entries</h2>
+      <ul id="journal-recent" class="entries"></ul>
+    </section>
+
+    <!-- COMPANION -->
+    <section id="view-companion" class="view" aria-labelledby="companion-h" hidden>
+      <h1 id="companion-h">Talk it through</h1>
+      <div id="chat-log" class="chat" role="log" aria-live="polite" aria-label="Conversation with Saathi"></div>
+      <form id="chat-form" class="chat__form">
+        <label class="visually-hidden" for="chat-input">Message Saathi</label>
+        <input id="chat-input" type="text" autocomplete="off" placeholder="Tell Saathi what's going on…" />
+        <button type="submit" class="btn btn--primary" id="chat-send">Send</button>
+      </form>
+    </section>
+
+    <!-- MINDFULNESS -->
+    <section id="view-mindfulness" class="view" aria-labelledby="mind-h" hidden>
+      <h1 id="mind-h">Take a breath with me</h1>
+      <div class="breathe">
+        <div id="breath-circle" class="breathe__circle"><span id="breath-phase">Ready?</span></div>
+        <p id="breath-status" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+          aria-label="Breathing cycle progress">Press start to begin a calming cycle.</p>
+        <div class="breathe__controls">
+          <button id="breath-start" class="btn btn--primary">Start</button>
+          <button id="breath-stop" class="btn" hidden>Stop</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view" aria-labelledby="dash-h" hidden>
+      <h1 id="dash-h">Your patterns</h1>
+      <p id="dash-summary" class="dash__summary"></p>
+      <h2 class="section-h">Mood over time</h2>
+      <div id="dash-trend" class="trend"></div>
+      <h2 class="section-h">Top stress themes</h2>
+      <div id="dash-triggers" class="triggers"></div>
+      <h2 class="section-h">What Saathi noticed</h2>
+      <ul id="dash-patterns" class="patterns"></ul>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view" aria-labelledby="set-h" hidden>
+      <h1 id="set-h">Settings &amp; your data</h1>
+      <form id="settings-form" class="card">
+        <label class="field">
+          <span class="field__label">Which exam are you preparing for?</span>
+          <select id="set-exam">
+            <option value="">— Select —</option>
+            <option>NEET</option><option>JEE</option><option>CUET</option>
+            <option>CAT</option><option>GATE</option><option>UPSC</option>
+            <option>Board exams</option><option>Other</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Exam date (for your countdown)</span>
+          <input id="set-examdate" type="date" />
+        </label>
+        <label class="field field--check">
+          <input id="set-muted" type="checkbox" />
+          <span>Mute sound effects</span>
+        </label>
+        <label class="field field--check">
+          <input id="set-reduced" type="checkbox" />
+          <span>Reduce motion &amp; animations</span>
+        </label>
+      </form>
+      <div class="data-actions">
+        <button id="export-btn" class="btn">⬇️ Export my data (JSON)</button>
+        <button id="wipe-btn" class="btn btn--danger">🗑️ Wipe everything</button>
+      </div>
+      <p class="muted">Your journal never leaves this device. No accounts, no cloud, no tracking.</p>
+    </section>
+  </main>
+
+  <!-- Polite announcements (level ups, saves) for screen readers. -->
+  <div id="live-region" class="visually-hidden" aria-live="polite"></div>
+  <div id="confetti-root" aria-hidden="true"></div>
+
+  <footer class="footer">
+    <p>Built with care for students. <span class="muted">Private by design · runs on-device.</span></p>
+  </footer>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

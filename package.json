@@ -1,0 +1,23 @@
+{
+  "name": "saathi",
+  "version": "1.0.0",
+  "description": "Saathi — a GenAI-powered mental wellness tracker and empathetic companion for students under high-stakes exam pressure. Privacy-by-design, on-device, zero runtime dependencies.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "python3 -m http.server 8753"
+  },
+  "keywords": [
+    "mental-wellness",
+    "genai",
+    "ollama",
+    "journaling",
+    "exam-stress",
+    "accessibility"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
