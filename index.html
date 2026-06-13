@@ -3,166 +3,201 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <!-- Strict CSP: only self + the two LOCAL companions (Ollama for chat,
-       Whisper for voice). No inline/eval, no CDN, no secrets, no cloud. -->
+  <!-- CSP: self + the two LOCAL companions (Ollama chat, Whisper voice) + Google
+       Fonts (fonts.googleapis stylesheet, fonts.gstatic font files). No other
+       external origins; no inline script; no eval. -->
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; connect-src 'self' http://localhost:11434 http://localhost:5005; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; base-uri 'none'; form-action 'none'" />
+    content="default-src 'self'; connect-src 'self' http://localhost:11434 http://localhost:5005; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; base-uri 'none'; form-action 'none'" />
   <meta name="description" content="Saathi — a private, on-device GenAI wellness companion for students under exam pressure." />
-  <meta name="theme-color" content="#5b3fd6" />
-  <!-- Inline SVG favicon (data URI) — no extra file, CSP-clean, kills the 404. -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='52' r='40' fill='%237c5cff'/%3E%3Ccircle cx='40' cy='48' rx='5' r='5' fill='%231a1130'/%3E%3Ccircle cx='60' cy='48' r='5' fill='%231a1130'/%3E%3Cpath d='M36 62 Q50 78 64 62' stroke='%231a1130' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <meta name="theme-color" content="#639922" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cpolygon points='60,21 97,49 83,95 37,95 23,49' fill='%23639922'/%3E%3Ccircle cx='46' cy='58' r='4.6' fill='%232C2C2A'/%3E%3Ccircle cx='74' cy='58' r='4.6' fill='%232C2C2A'/%3E%3Cpath d='M46,72 Q60,88 74,72' stroke='%232C2C2A' stroke-width='4.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500&family=Nunito:wght@400;500;700&display=swap" rel="stylesheet" />
   <title>Saathi · your exam wellness companion</title>
+  <link rel="stylesheet" href="styles/tokens.css" />
   <link rel="stylesheet" href="styles/main.css" />
 </head>
 <body data-view="journal">
   <a class="skip-link" href="#main">Skip to main content</a>
 
-  <!-- The whole app lives inside a phone silhouette on desktop/tablet, and goes
-       full-screen on real phones (see the media query in main.css). -->
   <div class="device">
     <div class="device__notch" aria-hidden="true"></div>
     <div class="device__screen">
 
-      <!-- Calm banner shown when the AI companion is offline (fallback mode). -->
-      <div id="offline-banner" class="banner" role="status" hidden>
-        <span class="banner__dot" aria-hidden="true"></span>
-        <span id="offline-banner-text">AI companion is offline — everything still works. Start Ollama for richer chat.</span>
+      <!-- decorative status bar -->
+      <div class="statusbar" aria-hidden="true">
+        <span>9:41</span>
+        <span class="statusbar__icons">
+          <span class="statusbar__signal"><i></i><i></i><i></i></span>
+          <span class="statusbar__batt"><i></i></span>
+        </span>
       </div>
 
-      <header class="topbar">
-        <div class="topbar__brand">
-          <span id="mascot-mount" class="mascot" aria-hidden="false"></span>
-          <span class="topbar__title">Saathi</span>
-        </div>
-        <dl class="hud" aria-label="Your progress">
-          <div class="hud__item">
-            <dt>Streak</dt>
-            <dd><span id="hud-streak">0</span><span class="hud__unit"> 🔥</span></dd>
-          </div>
-          <div class="hud__item">
-            <dt>Level</dt>
-            <dd id="hud-level">1</dd>
-          </div>
-          <div class="hud__item hud__item--xp">
-            <dt>XP</dt>
-            <dd>
-              <span id="hud-xp">0</span>
-              <span class="xpbar" aria-hidden="true"><span id="hud-xpbar" class="xpbar__fill"></span></span>
-            </dd>
-          </div>
-        </dl>
-      </header>
+      <main id="main" tabindex="-1" class="screen-content">
 
-      <main id="main" tabindex="-1">
-        <!-- Crisis panel: rendered ABOVE everything when a crisis signal is detected. -->
-        <section id="crisis-panel" class="crisis" role="alertdialog" aria-labelledby="crisis-title" hidden>
-          <h2 id="crisis-title">You don't have to face this alone 💙</h2>
-          <p id="crisis-message"></p>
-          <ul id="crisis-helplines" class="crisis__lines"></ul>
-          <p class="crisis__note">Saathi is a supportive companion, not a substitute for professional help.</p>
-          <button id="crisis-dismiss" class="btn">I understand</button>
+        <!-- ======= ONBOARDING: MASCOT BUILDER ======= -->
+        <section id="view-onboarding" class="view view--scroll" aria-labelledby="ob-h" hidden>
+          <h1 id="ob-h" class="ob__title">Create your saathi</h1>
+          <p class="ob__sub">Your companion reacts to how you're doing. Make it yours.</p>
+          <div class="ob__preview"><span id="ob-preview" class="saBob"></span></div>
+
+          <h2 class="chooser__label">Shape</h2>
+          <div id="ob-shapes" class="chooser chooser--shapes" role="group" aria-label="Shape"></div>
+          <h2 class="chooser__label">Colour</h2>
+          <div id="ob-colors" class="chooser chooser--colors" role="group" aria-label="Colour"></div>
+          <h2 class="chooser__label">Add a touch</h2>
+          <div id="ob-accs" class="chooser chooser--accs" role="group" aria-label="Accessory"></div>
+
+          <h2 class="chooser__label" id="ob-name-label">Name</h2>
+          <input id="ob-name" class="field-input" maxlength="14" aria-labelledby="ob-name-label" />
+
+          <button id="ob-finish" class="btn btn--primary btn--block">Meet Pip</button>
+          <p class="ob__lock"><span id="ob-lock-icon" aria-hidden="true"></span> Everything stays on your device</p>
         </section>
 
-        <!-- JOURNAL -->
-        <section id="view-journal" class="view" aria-labelledby="journal-h">
-          <h1 id="journal-h">How are you feeling today?</h1>
-          <form id="journal-form" class="card">
-            <label class="field">
-              <span class="field__label">Write it out — whatever is on your mind</span>
-              <textarea id="journal-text" rows="5" placeholder="Today I felt…" required></textarea>
-            </label>
-            <div class="voice" data-feature="voice" hidden>
-              <button type="button" id="journal-mic" class="mic" aria-pressed="false"
-                aria-label="Record a voice note — transcribed on your device">
-                <span class="mic__icon" aria-hidden="true">🎙️</span>
-                <span class="mic__label">Speak</span>
+        <!-- ======= JOURNAL ======= -->
+        <section id="view-journal" class="view view--scroll" aria-labelledby="journal-h" hidden>
+          <header class="jhead">
+            <div>
+              <h1 id="journal-h" class="jhead__greet">Namaste, <span id="greet-name">friend</span></h1>
+              <p class="jhead__sub"><span id="jhead-lock" aria-hidden="true"></span> <span id="jhead-context">On your device</span></p>
+            </div>
+            <div class="jhead__actions">
+              <button id="open-insights" class="streak-chip" aria-label="Open your insights">
+                <span id="streak-flame" aria-hidden="true"></span><span id="streak-num">0</span>
               </button>
-              <span id="journal-voice-status" class="voice__status" role="status" aria-live="polite"></span>
+              <button id="open-settings" class="icon-btn" aria-label="Open settings"></button>
             </div>
-            <fieldset class="mood">
-              <legend>Mood right now</legend>
-              <div class="mood__options" id="mood-options"></div>
-            </fieldset>
-            <button type="submit" class="btn btn--primary">Save entry</button>
-          </form>
-          <h2 class="section-h">Recent entries</h2>
-          <ul id="journal-recent" class="entries"></ul>
-        </section>
+          </header>
 
-        <!-- COMPANION -->
-        <section id="view-companion" class="view" aria-labelledby="companion-h" hidden>
-          <h1 id="companion-h">Talk it through</h1>
-          <div id="chat-log" class="chat" role="log" aria-live="polite" aria-label="Conversation with Saathi"></div>
-          <form id="chat-form" class="chat__form">
-            <label class="visually-hidden" for="chat-input">Message Saathi</label>
-            <input id="chat-input" type="text" autocomplete="off" placeholder="Tell Saathi what's going on…" />
-            <button type="button" id="chat-mic" class="mic mic--round" data-feature="voice" aria-pressed="false"
-              aria-label="Record a voice message — transcribed on your device" hidden>
-              <span class="mic__icon" aria-hidden="true">🎙️</span>
-            </button>
-            <button type="submit" class="btn btn--primary" id="chat-send">Send</button>
-          </form>
-        </section>
+          <div id="day-dots" class="day-dots" aria-label="This week's check-ins"></div>
 
-        <!-- MINDFULNESS -->
-        <section id="view-mindfulness" class="view" aria-labelledby="mind-h" hidden>
-          <h1 id="mind-h">Take a breath with me</h1>
-          <div class="breathe">
-            <div id="breath-circle" class="breathe__circle"><span id="breath-phase">Ready?</span></div>
-            <p id="breath-status" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
-              aria-label="Breathing cycle progress">Press start to begin a calming cycle.</p>
-            <div class="breathe__controls">
-              <button id="breath-start" class="btn btn--primary">Start</button>
-              <button id="breath-stop" class="btn" hidden>Stop</button>
-            </div>
+          <div id="focus-ctx-chip" class="ctx-chip" hidden></div>
+
+          <div class="prompt-row">
+            <span id="home-mascot" class="prompt-row__mascot"></span>
+            <div id="prompt-bubble" class="bubble bubble--saathi prompt-row__bubble"></div>
           </div>
+
+          <fieldset class="mood">
+            <legend>How are you feeling right now?</legend>
+            <div class="mood__options" id="mood-options"></div>
+          </fieldset>
+
+          <label class="field__label" for="journal-text">Write a little about it</label>
+          <textarea id="journal-text" class="field-input field-input--area" rows="4"
+            placeholder="The blank page is yours — no pressure, no judgement…"></textarea>
+
+          <div class="voice" data-feature="voice" hidden>
+            <button type="button" id="journal-mic" class="mic" aria-pressed="false"
+              aria-label="Record a voice note — transcribed on your device">
+              <span id="journal-mic-icon" aria-hidden="true"></span><span class="mic__label">Speak</span>
+            </button>
+            <span id="journal-voice-status" class="voice__status" role="status" aria-live="polite"></span>
+          </div>
+
+          <button id="journal-save" class="btn btn--primary btn--block" disabled>Save today's reflection</button>
         </section>
 
-        <!-- FOCUS (Pomodoro) -->
-        <section id="view-focus" class="view" aria-labelledby="focus-h" hidden>
-          <h1 id="focus-h">Focus session</h1>
-          <div class="focus">
-            <div class="focus__ring" aria-hidden="true">
-              <svg class="focus__svg" viewBox="0 0 120 120">
-                <circle class="focus__track" cx="60" cy="60" r="54" />
-                <circle id="focus-progress" class="focus__progress" cx="60" cy="60" r="54" />
-              </svg>
-              <div class="focus__center">
-                <span id="focus-mascot" class="focus__mascot"></span>
-                <span id="focus-time" class="focus__time">25:00</span>
-              </div>
+        <!-- ======= FOCUS ======= -->
+        <section id="view-focus" class="view view--flex" aria-labelledby="focus-h" hidden>
+          <div id="focus-active" class="focus">
+            <div class="focus__top">
+              <h1 id="focus-h" class="focus__title">Focus session</h1>
+              <span id="focus-mode" class="focus__mode">pomodoro</span>
             </div>
-            <p id="focus-status" role="timer" aria-live="off">Set your timer and press start.</p>
+            <div class="focus__center">
+              <div class="focus__ring">
+                <span id="focus-ring-mount" aria-hidden="true"></span>
+                <div class="focus__inner">
+                  <span id="focus-mascot" class="saBob"></span>
+                  <div id="focus-time" class="focus__time">25:00</div>
+                </div>
+              </div>
+              <p id="focus-status" class="focus__hint" role="timer" aria-live="off">Set a length and start when you're ready.</p>
+            </div>
 
-            <div class="focus__adjust" role="group" aria-label="Adjust session length">
-              <button id="focus-minus" class="btn btn--round" aria-label="Decrease by 5 minutes">−</button>
-              <span class="focus__chip"><span aria-hidden="true">⏱️</span> <span id="focus-length">25</span> min</span>
-              <button id="focus-plus" class="btn btn--round" aria-label="Increase by 5 minutes">+</button>
+            <div id="focus-stepper-wrap">
+              <div class="focus__stepper" role="group" aria-label="Session length">
+                <button id="focus-minus" class="round-btn" aria-label="Less time"></button>
+                <span class="focus__chip"><span id="focus-bell" aria-hidden="true"></span> <span id="focus-min">25</span> min</span>
+                <button id="focus-plus" class="round-btn" aria-label="More time"></button>
+              </div>
+              <div class="tip-card"><span id="focus-tip-icon" aria-hidden="true"></span><span>Pick a single task. Phone face-down — your streak waits, it never punishes.</span></div>
             </div>
 
             <div class="focus__controls">
-              <button id="focus-start" class="btn btn--primary btn--wide">Start</button>
-              <button id="focus-pause" class="btn" hidden>Pause</button>
-              <button id="focus-reset" class="btn" hidden>Reset</button>
+              <button id="focus-toggle" class="btn btn--primary btn--grow">Start focus</button>
+              <button id="focus-skip" class="btn btn--outline" hidden>Skip ›</button>
             </div>
+          </div>
 
-            <p class="focus__today muted">Sessions today: <span id="focus-count">0</span> 🍅</p>
-
-            <!-- Post-session reflection — revealed when a session completes. -->
-            <div id="focus-reflect" class="reflect card" role="group" aria-labelledby="reflect-h" hidden>
-              <h2 id="reflect-h" class="reflect__h">Nice work — that's a full session! 🎉</h2>
-              <p>How did that go? A quick reflection helps Saathi spot what helps you focus.</p>
-              <div class="reflect__actions">
-                <button id="reflect-journal" class="btn btn--primary">📝 Journal this session</button>
-                <button id="reflect-ask" class="btn">💬 Ask Saathi a doubt</button>
-              </div>
+          <div id="focus-complete" class="focus__complete" hidden>
+            <span id="focus-done-mascot" class="saPop"></span>
+            <h2 class="focus__done-title">Nice focus, <span class="done-name">friend</span></h2>
+            <p class="focus__done-sub">You stayed with it for <span id="focus-done-min">25</span> minutes. <span class="xp-pill">+15 XP</span></p>
+            <div class="focus__mood">
+              <p class="chooser__label">How did that feel?</p>
+              <div id="focus-mood-options" class="mood__options mood__options--compact"></div>
             </div>
+            <div class="focus__spacer"></div>
+            <button id="reflect-journal" class="btn btn--primary btn--block">Jot a quick reflection</button>
+            <button id="reflect-ask" class="btn btn--outline btn--block">Ask <span class="reflect-name">Saathi</span> a doubt</button>
+            <button id="reflect-later" class="btn btn--ghost">Maybe later</button>
           </div>
         </section>
 
-        <!-- DASHBOARD -->
-        <section id="view-dashboard" class="view" aria-labelledby="dash-h" hidden>
-          <h1 id="dash-h">Your patterns</h1>
+        <!-- ======= COMPANION ======= -->
+        <section id="view-companion" class="view view--chat" aria-labelledby="companion-h" hidden>
+          <header class="chead">
+            <span id="chat-mascot" class="chead__mascot"></span>
+            <div class="chead__id">
+              <h1 id="companion-h" class="chead__name">Saathi</h1>
+              <p class="chead__status"><span id="chat-status-dot" class="status-dot"></span><span id="chat-status-text">Here with you</span></p>
+            </div>
+            <button id="chat-offline-toggle" class="btn btn--outline btn--sm">Test offline</button>
+          </header>
+
+          <div id="chat-offline-banner" class="offline-banner" hidden>
+            <span id="chat-offline-icon" aria-hidden="true"></span>
+            <span id="chat-offline-text"></span>
+          </div>
+
+          <div id="chat-log" class="chat" role="log" aria-live="polite" aria-label="Conversation with your companion"></div>
+
+          <div id="chat-suggested" class="chips" aria-label="Suggested prompts"></div>
+
+          <form id="chat-form" class="chat__form">
+            <label class="visually-hidden" for="chat-input">Message your companion</label>
+            <input id="chat-input" type="text" autocomplete="off" class="field-input field-input--pill" placeholder="Tell Saathi anything…" />
+            <button type="button" id="chat-mic" class="mic mic--round" data-feature="voice" aria-pressed="false"
+              aria-label="Record a voice message — transcribed on your device" hidden></button>
+            <button type="submit" id="chat-send" class="send-btn" aria-label="Send"></button>
+          </form>
+        </section>
+
+        <!-- ======= BREATHE ======= -->
+        <section id="view-breathe" class="view view--flex" aria-labelledby="breathe-h" hidden>
+          <h1 id="breathe-h" class="breathe__title">Box breathing</h1>
+          <p class="breathe__sub2">A 4-4-4 reset · <span id="breath-count">0</span> of 5 breaths</p>
+          <div class="breathe__stage">
+            <div role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" aria-label="Breaths completed" id="breath-progress" class="breathe__orb">
+              <div class="breathe__outer"></div>
+              <div id="breath-inner" class="breathe__inner"></div>
+              <div id="breath-phase" class="breathe__phase">Ready</div>
+            </div>
+          </div>
+          <p id="breath-sub" class="breathe__hint">Find a comfortable seat. Ready when you are.</p>
+          <button id="breath-toggle" class="btn btn--primary btn--block">Begin</button>
+        </section>
+
+        <!-- ======= INSIGHTS (reachable via header; redesign owned by parallel session) ======= -->
+        <section id="view-dashboard" class="view view--scroll" aria-labelledby="dash-h" hidden>
+          <header class="subhead">
+            <button id="insights-back" class="icon-btn" aria-label="Back to journal"></button>
+            <h1 id="dash-h">Your patterns</h1>
+          </header>
           <p id="dash-summary" class="dash__summary"></p>
           <h2 class="section-h">Mood over time</h2>
           <div id="dash-trend" class="trend"></div>
@@ -172,13 +207,16 @@
           <ul id="dash-patterns" class="patterns"></ul>
         </section>
 
-        <!-- SETTINGS -->
-        <section id="view-settings" class="view" aria-labelledby="set-h" hidden>
-          <h1 id="set-h">Settings &amp; your data</h1>
+        <!-- ======= SETTINGS ======= -->
+        <section id="view-settings" class="view view--scroll" aria-labelledby="set-h" hidden>
+          <header class="subhead">
+            <button id="settings-back" class="icon-btn" aria-label="Back to journal"></button>
+            <h1 id="set-h">Settings &amp; your data</h1>
+          </header>
           <form id="settings-form" class="card">
             <label class="field">
               <span class="field__label">Which exam are you preparing for?</span>
-              <select id="set-exam">
+              <select id="set-exam" class="field-input">
                 <option value="">— Select —</option>
                 <option>NEET</option><option>JEE</option><option>CUET</option>
                 <option>CAT</option><option>GATE</option><option>UPSC</option>
@@ -187,59 +225,105 @@
             </label>
             <label class="field">
               <span class="field__label">Exam date (for your countdown)</span>
-              <input id="set-examdate" type="date" />
+              <input id="set-examdate" type="date" class="field-input" />
             </label>
             <label class="field field--check">
-              <input id="set-muted" type="checkbox" />
-              <span>Mute sound effects</span>
+              <input id="set-muted" type="checkbox" /> <span>Mute sound effects</span>
             </label>
             <label class="field field--check">
-              <input id="set-reduced" type="checkbox" />
-              <span>Reduce motion &amp; animations</span>
+              <input id="set-reduced" type="checkbox" /> <span>Reduce motion &amp; animations</span>
+            </label>
+            <label class="field field--check">
+              <input id="set-rebuild" type="checkbox" /> <span>Rebuild my saathi (reopens the builder)</span>
             </label>
           </form>
           <div class="data-actions">
-            <button id="export-btn" class="btn">⬇️ Export my data (JSON)</button>
-            <button id="wipe-btn" class="btn btn--danger">🗑️ Wipe everything</button>
+            <button id="export-btn" class="btn btn--outline"><span id="export-icon" aria-hidden="true"></span> Export my data</button>
+            <button id="wipe-btn" class="btn btn--danger"><span id="wipe-icon" aria-hidden="true"></span> Wipe everything</button>
           </div>
           <p class="muted">Your journal never leaves this device. No accounts, no cloud, no tracking.</p>
-
-          <footer class="footer">
-            <p>Built with care for students. <span class="muted">Private by design · runs on-device.</span></p>
-          </footer>
         </section>
 
         <div id="confetti-root" aria-hidden="true"></div>
       </main>
 
-      <!-- Bottom navigation — the primary, thumb-reachable mobile nav. -->
-      <nav class="tabs" aria-label="Sections">
-        <button class="tab" data-view="journal" aria-controls="view-journal" aria-selected="true">
-          <span class="tab__icon" aria-hidden="true">📝</span><span class="tab__label">Journal</span>
+      <!-- ======= OVERLAYS ======= -->
+      <div id="overlay-reward" class="overlay overlay--sheet" role="dialog" aria-label="Entry logged" hidden>
+        <div class="sheet saUp">
+          <div id="reward-confetti" class="confetti-layer" aria-hidden="true"></div>
+          <span id="reward-mascot" class="saPop"></span>
+          <h2 class="overlay__title">Logged. Well done.</h2>
+          <p class="overlay__body">Showing up for yourself counts — even on the hard days.</p>
+          <div class="stat-row">
+            <div class="stat stat--reward"><div class="stat__num">+10</div><div class="stat__label">XP</div></div>
+            <div class="stat stat--primary"><div id="reward-streak" class="stat__num">0</div><div class="stat__label">day streak</div></div>
+          </div>
+          <button class="btn btn--primary btn--block overlay-dismiss" data-dismiss="reward">Continue</button>
+        </div>
+      </div>
+
+      <div id="overlay-level" class="overlay overlay--full overlay--primary" role="dialog" aria-label="Level up" hidden>
+        <div id="level-confetti" class="confetti-layer" aria-hidden="true"></div>
+        <span id="level-mascot" class="saPop"></span>
+        <div class="overlay__eyebrow">LEVEL UP</div>
+        <h2 class="overlay__big">Level <span id="level-num">1</span></h2>
+        <p class="overlay__body">You've grown a little steadier. <span class="ov-name">Saathi</span> is proud of you.</p>
+        <button class="btn btn--primary overlay-dismiss" data-dismiss="any">Keep going</button>
+      </div>
+
+      <div id="overlay-mile" class="overlay overlay--center" role="dialog" aria-label="Milestone" hidden>
+        <div class="mile-card saUp">
+          <div id="mile-confetti" class="confetti-layer" aria-hidden="true"></div>
+          <span id="mile-mascot" class="saPop"></span>
+          <h2 class="overlay__title">7-day streak!</h2>
+          <p class="overlay__body">A whole week of checking in. That's real care for yourself.</p>
+          <button class="btn btn--primary btn--block overlay-dismiss" data-dismiss="any">Lovely</button>
+        </div>
+      </div>
+
+      <div id="overlay-streak" class="overlay overlay--full overlay--reward" role="dialog" aria-label="Streak" hidden>
+        <span id="streak-mascot" class="saPop"></span>
+        <div class="streak-big"><span id="streak-big-flame" aria-hidden="true"></span><span id="streak-big-num">0</span></div>
+        <div class="streak-cap">day streak</div>
+        <p class="overlay__body overlay__body--reward">Life happens — if you ever miss a day, your progress stays safe. No guilt here.</p>
+        <button class="btn btn--reward overlay-dismiss" data-dismiss="any">Continue</button>
+      </div>
+
+      <!-- Crisis: the hard boundary. Calm blue, ZERO gamification. -->
+      <div id="overlay-crisis" class="overlay overlay--crisis" role="alertdialog" aria-labelledby="crisis-title" hidden>
+        <div class="crisis__scroll">
+          <div class="crisis__close-row">
+            <button id="crisis-close" class="icon-btn icon-btn--white" aria-label="Close"></button>
+          </div>
+          <div class="crisis__heart"><span id="crisis-heart" aria-hidden="true"></span></div>
+          <h2 id="crisis-title" class="crisis__title">You don't have to carry this alone</h2>
+          <p class="crisis__body">It sounds like things feel really heavy right now. Talking to someone can help — these are free, confidential, and available now.</p>
+          <div id="crisis-lines" class="crisis__lines"></div>
+          <p class="crisis__note">Saathi is a companion, not a substitute for professional help.</p>
+          <button id="crisis-ok" class="btn btn--crisis-outline btn--block">I'm okay for now</button>
+        </div>
+      </div>
+
+      <!-- ======= BOTTOM NAV (4 tabs; hidden during onboarding) ======= -->
+      <nav id="tabbar" class="tabs" aria-label="Sections" hidden>
+        <button class="tab" data-view="journal" aria-current="page">
+          <span class="tab__icon" id="tabicon-journal" aria-hidden="true"></span><span class="tab__label">Journal</span>
         </button>
-        <button class="tab" data-view="companion" aria-controls="view-companion" aria-selected="false">
-          <span class="tab__icon" aria-hidden="true">💬</span><span class="tab__label">Companion</span>
+        <button class="tab" data-view="focus">
+          <span class="tab__icon" id="tabicon-focus" aria-hidden="true"></span><span class="tab__label">Focus</span>
         </button>
-        <button class="tab" data-view="mindfulness" aria-controls="view-mindfulness" aria-selected="false">
-          <span class="tab__icon" aria-hidden="true">🧘</span><span class="tab__label">Breathe</span>
+        <button class="tab" data-view="companion">
+          <span class="tab__icon" id="tabicon-companion" aria-hidden="true"></span><span class="tab__label" id="tab-companion-label">Saathi</span>
         </button>
-        <button class="tab" data-view="focus" aria-controls="view-focus" aria-selected="false">
-          <span class="tab__icon" aria-hidden="true">🍅</span><span class="tab__label">Focus</span>
-        </button>
-        <button class="tab" data-view="dashboard" aria-controls="view-dashboard" aria-selected="false">
-          <span class="tab__icon" aria-hidden="true">📊</span><span class="tab__label">Insights</span>
-        </button>
-        <button class="tab" data-view="settings" aria-controls="view-settings" aria-selected="false">
-          <span class="tab__icon" aria-hidden="true">⚙️</span><span class="tab__label">Settings</span>
+        <button class="tab" data-view="breathe">
+          <span class="tab__icon" id="tabicon-breathe" aria-hidden="true"></span><span class="tab__label">Breathe</span>
         </button>
       </nav>
 
     </div>
   </div>
 
-  <!-- Polite announcements (level ups, saves) for screen readers. -->
   <div id="live-region" class="visually-hidden" aria-live="polite"></div>
-
   <script type="module" src="src/app.js"></script>
 </body>
 </html>

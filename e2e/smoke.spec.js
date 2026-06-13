@@ -1,64 +1,81 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * End-to-end smoke tests for Saathi. These exercise the real app in a browser
- * against the offline/fallback path (no Ollama, no Whisper) — which is exactly
- * how CI runs — so they validate the deterministic, always-available core:
- * journaling → insights, the focus timer, the crisis safety net, and settings.
+ * End-to-end smoke tests for Saathi (design-system build). These drive the real
+ * app in a browser against the offline/fallback path (no Ollama, no Whisper) —
+ * exactly how CI runs — validating onboarding, journaling → reward, the focus
+ * timer, the crisis safety net, and settings.
  */
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('/index.html');
+const SEED = {
+  version: 1,
+  onboarded: true,
+  mascot: { shape: 'pentagon', color: '#639922', accessory: 'sprout', name: 'Pip' },
+  entries: [], chat: [], sessions: [],
+  settings: { exam: '', examDate: '', muted: false, reducedMotion: false, focusMinutes: 25 }
+};
+
+/** Seed an already-onboarded user so a test starts on the Journal tab. */
+async function seedOnboarded(page) {
+  await page.addInitScript((s) => localStorage.setItem('saathi.v1', s), JSON.stringify(SEED));
+}
+
+test('first run shows the mascot builder', async ({ page }) => {
+  await page.goto('/index.html'); // no seed → empty storage → onboarding
   await expect(page).toHaveTitle(/Saathi/);
+  await expect(page.getByRole('heading', { name: 'Create your saathi' })).toBeVisible();
+  await expect(page.locator('#ob-shapes button')).toHaveCount(5);
+  await expect(page.locator('#ob-colors button')).toHaveCount(6);
 });
 
-test('loads inside the app shell with the journal view first', async ({ page }) => {
-  await expect(page.getByRole('heading', { name: 'How are you feeling today?' })).toBeVisible();
-  await expect(page.locator('.device__screen')).toBeVisible();
-  // Bottom nav exposes all six sections.
-  for (const name of ['Journal', 'Companion', 'Breathe', 'Focus', 'Insights', 'Settings']) {
-    await expect(page.getByRole('button', { name })).toBeVisible();
+test('onboarded user lands on Journal with the four-tab nav', async ({ page }) => {
+  await seedOnboarded(page);
+  await page.goto('/index.html');
+  await expect(page.getByRole('heading', { name: /Namaste/ })).toBeVisible();
+  for (const name of ['Journal', 'Focus', 'Pip', 'Breathe']) {
+    await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
   }
 });
 
-test('saving a journal entry surfaces triggers and a streak in Insights', async ({ page }) => {
-  await page.locator('#journal-text').fill('Sleepless before NEET, my parents keep asking about mock scores.');
-  await page.locator('input[name="mood"][value="2"]').check();
-  await page.getByRole('button', { name: 'Save entry' }).click();
-
-  await page.getByRole('button', { name: 'Insights' }).click();
-  await expect(page.getByRole('heading', { name: 'Your patterns' })).toBeVisible();
-  // The deterministic engine should detect themes from the free text.
-  await expect(page.locator('#dash-triggers')).toContainText('Sleep');
-  await expect(page.locator('#dash-triggers')).toContainText('Family & expectations');
-  // Streak HUD updates.
-  await expect(page.locator('#hud-streak')).toHaveText('1');
+test('saving a reflection shows the reward sheet with XP', async ({ page }) => {
+  await seedOnboarded(page);
+  await page.goto('/index.html');
+  await page.locator('#mood-options button[data-level="4"]').click();
+  await page.locator('#journal-text').fill('Sleepless before NEET; parents kept asking about mock scores.');
+  await page.locator('#journal-save').click();
+  await expect(page.locator('#overlay-reward')).toBeVisible();
+  await expect(page.locator('#overlay-reward')).toContainText('+10');
+  await expect(page.locator('#reward-streak')).toHaveText('1');
 });
 
-test('focus timer counts down and reveals the reflection prompt is wired', async ({ page }) => {
-  await page.getByRole('button', { name: 'Focus' }).click();
+test('focus timer counts down once started', async ({ page }) => {
+  await seedOnboarded(page);
+  await page.goto('/index.html');
+  await page.getByRole('button', { name: 'Focus', exact: true }).click();
   await expect(page.locator('#focus-time')).toHaveText('25:00');
-  await page.getByRole('button', { name: 'Start', exact: true }).click();
-  await expect(page.locator('#focus-pause')).toBeVisible();
-  // Time should move off 25:00 within a couple of ticks.
+  await page.locator('#focus-toggle').click();
+  await expect(page.locator('#focus-toggle')).toHaveText('Pause');
   await expect(page.locator('#focus-time')).not.toHaveText('25:00');
 });
 
-test('a crisis message surfaces the helpline panel without an LLM', async ({ page }) => {
-  await page.getByRole('button', { name: 'Companion' }).click();
+test('a crisis message surfaces the calm-blue helpline overlay without an LLM', async ({ page }) => {
+  await seedOnboarded(page);
+  await page.goto('/index.html');
+  await page.getByRole('button', { name: 'Pip', exact: true }).click();
   await page.locator('#chat-input').fill("Sometimes I feel like I can't go on.");
   await page.locator('#chat-input').press('Enter');
 
-  const panel = page.locator('#crisis-panel');
-  await expect(panel).toBeVisible();
-  await expect(panel).toContainText('Tele-MANAS');
-  await expect(panel).toContainText('14416');
-  // The reply defers to professional help (deterministic, not a model call).
-  await expect(page.locator('#chat-log')).toContainText('not a substitute for professional help');
+  const crisis = page.locator('#overlay-crisis');
+  await expect(crisis).toBeVisible();
+  await expect(crisis).toContainText('Tele-MANAS');
+  await expect(crisis).toContainText('14416');
+  await expect(page.locator('#chat-log')).toContainText('professional help');
 });
 
 test('reduce-motion setting toggles the global class', async ({ page }) => {
-  await page.getByRole('button', { name: 'Settings' }).click();
+  await seedOnboarded(page);
+  await page.goto('/index.html');
+  await page.locator('#open-settings').click();
   await page.locator('#set-reduced').check();
   await expect(page.locator('body')).toHaveClass(/reduced-motion/);
 });
