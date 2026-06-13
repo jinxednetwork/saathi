@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500&family=Nunito:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#E7E5DD;font-family:'Nunito',system-ui,-apple-system,sans-serif;color:#2C2C2A;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  h1,h2,h3,p{margin:0}
+  @keyframes saBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+  @keyframes saFloat{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-6px) rotate(6deg)}}
+  @keyframes saPop{0%{transform:scale(.92)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
+  @keyframes saUp{from{transform:translateY(16px)}to{transform:translateY(0)}}
+  @keyframes saFade{from{opacity:1}to{opacity:1}}
+  @keyframes saConfetti{to{transform:translateY(460px) rotate(420deg);opacity:0}}
+  @keyframes saDot{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-5px);opacity:1}}
+  @keyframes saRing{0%{transform:scale(.85);opacity:.5}100%{transform:scale(1.35);opacity:0}}
+  .saBob{animation:saBob 4s ease-in-out infinite}
+  .saFloat{animation:saFloat 3.6s ease-in-out infinite}
+  .saPop{animation:saPop .4s cubic-bezier(.34,1.56,.64,1) both}
+  .saUp{animation:saUp .32s cubic-bezier(.22,1,.36,1) both}
+  .saFade{animation:saFade .3s ease-out both}
+  .saScroll::-webkit-scrollbar{width:0;height:0}
+  .saScroll{scrollbar-width:none}
+  textarea,input,button{font-family:inherit;color:inherit}
+  textarea::placeholder,input::placeholder{color:#888780}
+  @media (prefers-reduced-motion: reduce){
+    .saBob,.saFloat,.saPop,.saUp,.saFade,.saFloat{animation:none!important}
+  }
+</style>
+</helmet>
+
+<div style="max-width:1200px;margin:0 auto;padding:46px 24px 96px">
+
+  <header style="margin-bottom:30px">
+    <div style="display:inline-flex;align-items:center;gap:8px;background:#EAF3DE;color:#3B6D11;font-size:12px;padding:6px 12px;border-radius:28px;font-weight:500;letter-spacing:.2px">Interactive prototype · v1 · light theme</div>
+    <h1 style="font-family:Fredoka;font-weight:500;font-size:46px;line-height:1.05;margin:16px 0 10px;letter-spacing:-.5px">Saathi</h1>
+    <p style="font-size:17px;line-height:1.6;color:#5F5E5A;max-width:660px">A calm, gently gamified companion for students under exam pressure. Build your own saathi, journal your mood, focus in study sprints, and talk things through — with reward loops borrowed from the best habit apps and the anxiety loop left behind.</p>
+  </header>
+
+  <section style="display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-bottom:34px">
+    <div style="background:#FFFFFF;border-radius:24px;padding:26px 28px">
+      <h2 style="font-family:Fredoka;font-weight:500;font-size:18px;margin-bottom:14px">Design principles</h2>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:12px"><span style="flex:none;width:8px;height:8px;border-radius:9999px;background:#639922;margin-top:7px"></span><p style="font-size:15px;line-height:1.55;color:#3a3a38"><b style="font-weight:500">Calm energy, not anxious energy.</b> <span style="color:#5F5E5A">The reward loop encourages; it never guilt-trips. Missed days get "welcome back", never a funeral.</span></p></div>
+        <div style="display:flex;gap:12px"><span style="flex:none;width:8px;height:8px;border-radius:9999px;background:#639922;margin-top:7px"></span><p style="font-size:15px;line-height:1.55;color:#3a3a38"><b style="font-weight:500">The mascot is the emotional anchor.</b> <span style="color:#5F5E5A">Users build their own — it reacts to mood and consistency, including a caring "concerned" state.</span></p></div>
+        <div style="display:flex;gap:12px"><span style="flex:none;width:8px;height:8px;border-radius:9999px;background:#639922;margin-top:7px"></span><p style="font-size:15px;line-height:1.55;color:#3a3a38"><b style="font-weight:500">Safety is never gamified.</b> <span style="color:#5F5E5A">The crisis surface renders calm and serious — no XP, no mascot cheer, no confetti.</span></p></div>
+      </div>
+    </div>
+    <div style="background:#FFFFFF;border-radius:24px;padding:26px 28px">
+      <h2 style="font-family:Fredoka;font-weight:500;font-size:18px;margin-bottom:14px">Tokens</h2>
+      <div style="font-family:Fredoka;font-weight:500;font-size:26px;line-height:1;margin-bottom:4px">Fredoka</div>
+      <div style="font-size:13px;color:#888780;margin-bottom:16px">display & UI · Nunito for body, weights 400/500</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:7px;background:#F7F4E9;padding:6px 11px 6px 7px;border-radius:28px;font-size:12px;color:#5F5E5A"><span style="width:16px;height:16px;border-radius:9999px;background:#639922"></span>primary</div>
+        <div style="display:flex;align-items:center;gap:7px;background:#F7F4E9;padding:6px 11px 6px 7px;border-radius:28px;font-size:12px;color:#5F5E5A"><span style="width:16px;height:16px;border-radius:9999px;background:#EF9F27"></span>reward</div>
+        <div style="display:flex;align-items:center;gap:7px;background:#F7F4E9;padding:6px 11px 6px 7px;border-radius:28px;font-size:12px;color:#5F5E5A"><span style="width:16px;height:16px;border-radius:9999px;background:#E6F1FB;border:1px solid #cfe0f1"></span>crisis</div>
+        <div style="display:flex;align-items:center;gap:7px;background:#F7F4E9;padding:6px 11px 6px 7px;border-radius:28px;font-size:12px;color:#5F5E5A"><span style="width:16px;height:16px;border-radius:9999px;background:#F7F4E9;border:1px solid #ddd6c4"></span>cream bg</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HERO : LIVE APP ============ -->
+  <section style="background:linear-gradient(160deg,#EAF3DE,#F2EEE0);border-radius:32px;padding:40px 24px 30px;margin-bottom:18px">
+    <div style="text-align:center;margin-bottom:26px">
+      <h2 style="font-family:Fredoka;font-weight:500;font-size:24px;margin-bottom:6px">The app, live</h2>
+      <p style="font-size:14px;color:#5F5E5A">Build a saathi, then try the loop — journal a mood, run a focus sprint, chat, or breathe. Use the controls below the phone to preview reward & safety moments.</p>
+    </div>
+
+    <div style="display:flex;justify-content:center">
+      <div style="position:relative;width:392px;height:812px;background:#16160f;border-radius:58px;padding:13px;box-shadow:0 40px 80px -28px rgba(40,50,20,.55),0 0 0 2px #2c2c20 inset">
+        <div style="position:absolute;top:24px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:9999px;z-index:30"></div>
+        <div style="position:relative;width:100%;height:100%;border-radius:46px;overflow:hidden;background:#F7F4E9;display:flex;flex-direction:column">
+
+          <!-- status bar -->
+          <div style="height:50px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font-family:Fredoka;font-weight:500;font-size:15px;z-index:5">
+            <span>9:41</span>
+            <span style="display:flex;align-items:center;gap:6px">
+              <span style="display:flex;gap:2px;align-items:flex-end"><i style="width:3px;height:6px;background:#2C2C2A;border-radius:1px;display:block"></i><i style="width:3px;height:9px;background:#2C2C2A;border-radius:1px;display:block"></i><i style="width:3px;height:12px;background:#2C2C2A;border-radius:1px;display:block"></i></span>
+              <span style="width:22px;height:11px;border:1.5px solid #2C2C2A;border-radius:3px;position:relative;display:inline-block"><i style="position:absolute;inset:1.5px;width:13px;background:#2C2C2A;border-radius:1px;display:block"></i></span>
+            </span>
+          </div>
+
+          <!-- content -->
+          <div style="flex:1;position:relative;overflow:hidden">
+
+            <!-- ======= ONBOARDING : MASCOT BUILDER ======= -->
+            <sc-if value="{{ notOnboarded }}" hint-placeholder-val="{{ true }}">
+              <div class="saScroll" style="position:absolute;inset:0;overflow-y:auto;padding:6px 24px 30px">
+                <h2 style="font-family:Fredoka;font-weight:500;font-size:23px;line-height:1.15;margin-bottom:5px">Create your saathi</h2>
+                <p style="font-size:14px;line-height:1.5;color:#5F5E5A;margin-bottom:14px">Your companion reacts to how you're doing. Make it yours.</p>
+
+                <div style="background:#FFFFFF;border-radius:24px;padding:18px;display:flex;align-items:center;justify-content:center;min-height:188px;margin-bottom:18px">
+                  <div class="saBob">{{ builderMascot }}</div>
+                </div>
+
+                <div style="font-size:13px;font-weight:500;color:#5F5E5A;margin-bottom:8px">Shape</div>
+                <sc-for list="{{ shapeOpts }}" as="opt" hint-placeholder-count="5">
+                  <button onClick="{{ opt.onClick }}" aria-pressed="{{ opt.selected }}" style="{{ opt.style }}">{{ opt.icon }}</button>
+                </sc-for>
+
+                <div style="font-size:13px;font-weight:500;color:#5F5E5A;margin:18px 0 8px">Colour</div>
+                <sc-for list="{{ colorOpts }}" as="c" hint-placeholder-count="6">
+                  <button onClick="{{ c.onClick }}" aria-label="{{ c.label }}" aria-pressed="{{ c.selected }}" style="{{ c.style }}"><span style="{{ c.swatch }}"></span></button>
+                </sc-for>
+
+                <div style="font-size:13px;font-weight:500;color:#5F5E5A;margin:18px 0 8px">Add a touch</div>
+                <sc-for list="{{ accOpts }}" as="a" hint-placeholder-count="4">
+                  <button onClick="{{ a.onClick }}" aria-pressed="{{ a.selected }}" style="{{ a.style }}">{{ a.icon }}<span style="font-size:11px;color:#5F5E5A">{{ a.label }}</span></button>
+                </sc-for>
+
+                <div style="font-size:13px;font-weight:500;color:#5F5E5A;margin:18px 0 8px">Name</div>
+                <input value="{{ mName }}" onChange="{{ onName }}" maxlength="14" aria-label="Companion name" style="width:100%;border:1.5px solid #EFEBDD;background:#FFFFFF;border-radius:16px;padding:13px 16px;font-size:16px;outline:none" />
+
+                <button onClick="{{ finishOnboard }}" style="margin-top:20px;width:100%;border:none;background:#639922;color:#fff;font-family:Fredoka;font-weight:500;font-size:17px;padding:16px;border-radius:28px;cursor:pointer">Meet {{ mName }}</button>
+                <div style="text-align:center;font-size:12px;color:#888780;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px">{{ lockIcon }} Everything stays on your device</div>
+              </div>
+            </sc-if>
+
+            <!-- ======= JOURNAL ======= -->
+            <sc-if value="{{ tabJournal }}" hint-placeholder-val="{{ true }}">
+              <div class="saScroll" style="position:absolute;inset:0;overflow-y:auto;padding:4px 22px 22px">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px">
+                  <div>
+                    <h2 style="font-family:Fredoka;font-weight:500;font-size:23px;line-height:1.1">Namaste, {{ greetName }}</h2>
+                    <div style="font-size:13px;color:#888780;margin-top:2px;display:flex;align-items:center;gap:5px">{{ lockIconSm }} On your device · NEET in 184 days</div>
+                  </div>
+                  <div style="flex:none;display:flex;align-items:center;gap:6px;background:#FAEEDA;color:#854F0B;padding:8px 13px;border-radius:28px;font-family:Fredoka;font-weight:500;font-size:15px">{{ flameIcon }} {{ streak }}</div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;gap:5px;margin-bottom:18px">
+                  <sc-for list="{{ dots }}" as="d" hint-placeholder-count="7">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1">
+                      <span style="font-size:11px;color:#888780">{{ d.l }}</span>
+                      <span style="{{ d.style }}">{{ d.inner }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <sc-if value="{{ journalFromFocus }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:inline-flex;align-items:center;gap:6px;background:#EAF3DE;color:#3B6D11;font-size:12px;padding:6px 12px;border-radius:28px;margin-bottom:12px">{{ clockIconSm }} After a {{ focusMinDone }}-min focus session</div>
+                </sc-if>
+
+                <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:16px">
+                  <div style="flex:none">{{ homeMascot }}</div>
+                  <div style="background:#FFFFFF;border-radius:20px 20px 20px 6px;padding:13px 16px;font-size:15px;line-height:1.5;color:#2C2C2A">{{ promptText }}</div>
+                </div>
+
+                <fieldset style="border:none;padding:0;margin:0 0 16px">
+                  <legend style="font-size:13px;font-weight:500;color:#5F5E5A;padding:0;margin-bottom:10px">How are you feeling right now?</legend>
+                  <div style="display:flex;justify-content:space-between;gap:6px">
+                    <sc-for list="{{ moods }}" as="m" hint-placeholder-count="5">
+                      <button onClick="{{ m.onClick }}" aria-pressed="{{ m.selected }}" style="{{ m.style }}">{{ m.icon }}<span style="{{ m.labelStyle }}">{{ m.label }}</span></button>
+                    </sc-for>
+                  </div>
+                </fieldset>
+
+                <label for="saJournal" style="font-size:13px;font-weight:500;color:#5F5E5A;display:block;margin-bottom:8px">Write a little about it</label>
+                <textarea id="saJournal" value="{{ entry }}" onChange="{{ onEntry }}" placeholder="The blank page is yours — no pressure, no judgement…" style="width:100%;min-height:108px;resize:none;border:1.5px solid #EFEBDD;background:#FFFFFF;border-radius:18px;padding:14px 16px;font-size:16px;line-height:1.6;outline:none"></textarea>
+
+                <button onClick="{{ saveEntry }}" disabled="{{ saveDisabled }}" style="{{ saveStyle }}">Save today's reflection</button>
+                <button onClick="{{ openCrisisDemo }}" style="width:100%;background:none;border:none;color:#888780;font-size:12px;margin-top:12px;cursor:pointer;text-decoration:underline;text-underline-offset:2px">Preview the safety surface (demo)</button>
+              </div>
+            </sc-if>
+
+            <!-- ======= FOCUS ======= -->
+            <sc-if value="{{ tabFocus }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:8px 22px 18px">
+
+                <sc-if value="{{ focusActive }}" hint-placeholder-val="{{ true }}">
+                  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:8px 22px 18px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex:none">
+                      <span style="font-family:Fredoka;font-weight:500;font-size:18px">Focus session</span>
+                      <span style="font-size:12px;color:#888780">{{ focusModeLabel }}</span>
+                    </div>
+
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+                      <div style="position:relative;width:236px;height:236px;display:flex;align-items:center;justify-content:center">
+                        {{ focusRing }}
+                        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+                          <div class="saBob" style="margin-bottom:2px">{{ focusMascot }}</div>
+                          <div style="font-family:Fredoka;font-weight:500;font-size:42px;line-height:1;letter-spacing:.5px">{{ focusTime }}</div>
+                        </div>
+                      </div>
+                      <div style="font-size:14px;color:#5F5E5A;text-align:center;max-width:230px;line-height:1.45">{{ focusHint }}</div>
+                    </div>
+
+                    <sc-if value="{{ focusIdle }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex;align-items:center;justify-content:space-between;background:#EAF3DE;border-radius:28px;padding:6px;margin-bottom:14px">
+                        <button onClick="{{ stepMinus }}" aria-label="Less time" style="width:46px;height:46px;border:none;background:#FFFFFF;border-radius:9999px;font-size:22px;color:#3B6D11;cursor:pointer;display:flex;align-items:center;justify-content:center">{{ minusIcon }}</button>
+                        <span style="display:flex;align-items:center;gap:7px;font-family:Fredoka;font-weight:500;font-size:16px;color:#3B6D11">{{ bellIcon }} {{ focusMin }} min</span>
+                        <button onClick="{{ stepPlus }}" aria-label="More time" style="width:46px;height:46px;border:none;background:#FFFFFF;border-radius:9999px;font-size:22px;color:#3B6D11;cursor:pointer;display:flex;align-items:center;justify-content:center">{{ plusIcon }}</button>
+                      </div>
+                      <div style="background:#FFFFFF;border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:11px;margin-bottom:18px">
+                        <span style="flex:none">{{ tipIcon }}</span>
+                        <span style="font-size:14px;color:#5F5E5A;line-height:1.4">Pick a single task. Phone face-down — your streak waits, it never punishes.</span>
+                      </div>
+                    </sc-if>
+
+                    <div style="flex:none;display:flex;gap:10px">
+                      <button onClick="{{ toggleFocus }}" style="flex:1;border:none;background:#639922;color:#fff;font-family:Fredoka;font-weight:500;font-size:17px;padding:16px;border-radius:28px;cursor:pointer">{{ focusBtnLabel }}</button>
+                      <sc-if value="{{ focusRunning }}" hint-placeholder-val="{{ false }}">
+                        <button onClick="{{ skipFocus }}" style="flex:none;border:1.5px solid #EFEBDD;background:#FFFFFF;color:#5F5E5A;font-family:Fredoka;font-weight:500;font-size:14px;padding:0 18px;border-radius:28px;cursor:pointer">Skip ›</button>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ focusDone }}" hint-placeholder-val="{{ false }}">
+                  <div class="saFade" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:24px 22px 18px;text-align:center">
+                    <div class="saPop" style="margin-top:14px">{{ focusDoneMascot }}</div>
+                    <h2 style="font-family:Fredoka;font-weight:500;font-size:24px;margin:10px 0 4px">Nice focus, {{ greetName }}</h2>
+                    <p style="font-size:15px;color:#5F5E5A;line-height:1.5;margin-bottom:6px">You stayed with it for {{ focusMinDone }} minutes. <span style="color:#3B6D11">+15 XP</span></p>
+                    <div style="margin-top:14px;width:100%">
+                      <div style="font-size:13px;font-weight:500;color:#5F5E5A;margin-bottom:10px">How did that feel?</div>
+                      <div style="display:flex;justify-content:space-between;gap:6px">
+                        <sc-for list="{{ moodsFocus }}" as="m" hint-placeholder-count="5">
+                          <button onClick="{{ m.onClick }}" aria-pressed="{{ m.selected }}" style="{{ m.style }}">{{ m.icon }}</button>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div style="flex:1"></div>
+                    <button onClick="{{ goJournalFromFocus }}" style="width:100%;border:none;background:#639922;color:#fff;font-family:Fredoka;font-weight:500;font-size:16px;padding:15px;border-radius:28px;cursor:pointer;margin-bottom:9px">Jot a quick reflection</button>
+                    <button onClick="{{ askSaathiFromFocus }}" style="width:100%;border:1.5px solid #639922;background:#FFFFFF;color:#3B6D11;font-family:Fredoka;font-weight:500;font-size:16px;padding:15px;border-radius:28px;cursor:pointer;margin-bottom:9px">Ask {{ mName }} a doubt</button>
+                    <button onClick="{{ closeFocus }}" style="background:none;border:none;color:#888780;font-size:13px;cursor:pointer">Maybe later</button>
+                  </div>
+                </sc-if>
+
+              </div>
+            </sc-if>
+
+            <!-- ======= COMPANION ======= -->
+            <sc-if value="{{ tabCompanion }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column">
+                <div style="flex:none;display:flex;align-items:center;gap:11px;padding:6px 20px 12px;border-bottom:1px solid #EFEBDD">
+                  <div style="flex:none">{{ chatMascot }}</div>
+                  <div style="flex:1">
+                    <div style="font-family:Fredoka;font-weight:500;font-size:17px">{{ mName }}</div>
+                    <div style="font-size:12px;color:{{ statusColor }};display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:9999px;background:{{ statusColor }};display:inline-block"></span>{{ statusText }}</div>
+                  </div>
+                  <button onClick="{{ toggleOffline }}" style="flex:none;border:1.5px solid #EFEBDD;background:#FFFFFF;color:#5F5E5A;font-size:12px;padding:7px 12px;border-radius:28px;cursor:pointer">{{ offlineBtn }}</button>
+                </div>
+
+                <sc-if value="{{ offline }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin:12px 20px 0;background:#E6F1FB;border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start">
+                    <span style="flex:none;margin-top:1px">{{ wifiOffIcon }}</span>
+                    <span style="font-size:13px;line-height:1.45;color:#0C447C">{{ mName }}'s AI companion is offline. You can still try a grounding step below, or breathe together.</span>
+                  </div>
+                </sc-if>
+
+                <div class="saScroll" aria-live="polite" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:11px">
+                  <sc-for list="{{ chat }}" as="msg" hint-placeholder-count="2">
+                    <div style="{{ msg.row }}"><div class="saFade" style="{{ msg.bubble }}">{{ msg.text }}</div></div>
+                  </sc-for>
+                  <sc-if value="{{ typing }}" hint-placeholder-val="{{ false }}">
+                    <div style="align-self:flex-start;background:#FFFFFF;border-radius:18px 18px 18px 6px;padding:14px 16px;display:flex;gap:5px">
+                      <span style="width:7px;height:7px;border-radius:9999px;background:#b9b6ab;display:block;animation:saDot 1.1s infinite"></span>
+                      <span style="width:7px;height:7px;border-radius:9999px;background:#b9b6ab;display:block;animation:saDot 1.1s .18s infinite"></span>
+                      <span style="width:7px;height:7px;border-radius:9999px;background:#b9b6ab;display:block;animation:saDot 1.1s .36s infinite"></span>
+                    </div>
+                  </sc-if>
+                </div>
+
+                <div style="flex:none;padding:0 18px 6px;display:flex;gap:8px;overflow-x:auto" class="saScroll">
+                  <sc-for list="{{ suggested }}" as="s" hint-placeholder-count="3">
+                    <button onClick="{{ s.onClick }}" style="flex:none;border:1.5px solid #EAF3DE;background:#FFFFFF;color:#3B6D11;font-size:13px;padding:9px 14px;border-radius:28px;cursor:pointer;white-space:nowrap">{{ s.text }}</button>
+                  </sc-for>
+                </div>
+
+                <div style="flex:none;display:flex;gap:9px;padding:8px 18px 16px;border-top:1px solid #EFEBDD">
+                  <input value="{{ input }}" onChange="{{ onInput }}" onKeyDown="{{ onInputKey }}" placeholder="Tell {{ mName }} anything…" aria-label="Message" style="flex:1;border:1.5px solid #EFEBDD;background:#FFFFFF;border-radius:28px;padding:13px 16px;font-size:16px;outline:none" />
+                  <button onClick="{{ sendMsg }}" aria-label="Send" style="flex:none;width:48px;height:48px;border:none;background:#639922;border-radius:9999px;cursor:pointer;display:flex;align-items:center;justify-content:center">{{ sendIcon }}</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- ======= BREATHE ======= -->
+            <sc-if value="{{ tabBreathe }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:14px 22px 20px;text-align:center">
+                <h2 style="font-family:Fredoka;font-weight:500;font-size:22px;margin-bottom:2px;flex:none">Box breathing</h2>
+                <p style="font-size:13px;color:#888780;margin-bottom:6px;flex:none">A 4-4-4 reset · {{ breathCount }} of 5 breaths</p>
+
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;width:100%">
+                  <div role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="{{ breathCount }}" aria-label="Breaths completed" style="position:relative;width:250px;height:250px;display:flex;align-items:center;justify-content:center">
+                    <div style="position:absolute;width:250px;height:250px;border-radius:9999px;background:#EAF3DE"></div>
+                    <div style="position:absolute;width:200px;height:200px;border-radius:9999px;background:#dcebc8;background:#D9EBBF;transition:transform 3.8s cubic-bezier(.4,0,.2,1);transform:scale({{ breathScale }})"></div>
+                    <div style="position:relative;font-family:Fredoka;font-weight:500;font-size:24px;color:#3B6D11">{{ breathPhase }}</div>
+                  </div>
+                </div>
+
+                <div style="font-size:13px;color:#888780;margin-bottom:14px;flex:none">{{ breathSub }}</div>
+                <button onClick="{{ toggleBreath }}" style="width:100%;border:none;background:#639922;color:#fff;font-family:Fredoka;font-weight:500;font-size:17px;padding:16px;border-radius:28px;cursor:pointer;flex:none">{{ breathBtn }}</button>
+              </div>
+            </sc-if>
+
+            <!-- ======= OVERLAYS ======= -->
+            <sc-if value="{{ ovReward }}" hint-placeholder-val="{{ false }}">
+              <div class="saFade" style="position:absolute;inset:0;background:rgba(44,44,42,.28);display:flex;flex-direction:column;justify-content:flex-end;z-index:20">
+                <div class="saUp" style="position:relative;background:#FFFFFF;border-radius:28px 28px 0 0;padding:24px 24px 26px;text-align:center;overflow:hidden">
+                  {{ confettiReward }}
+                  <div class="saPop" style="position:relative;display:flex;justify-content:center">{{ rewardMascot }}</div>
+                  <h2 style="position:relative;font-family:Fredoka;font-weight:500;font-size:22px;margin:8px 0 4px">Logged. Well done.</h2>
+                  <p style="position:relative;font-size:14px;color:#5F5E5A;line-height:1.5;margin-bottom:16px">Showing up for yourself counts — even on the hard days.</p>
+                  <div style="position:relative;display:flex;gap:10px;justify-content:center;margin-bottom:18px">
+                    <div style="background:#FAEEDA;border-radius:16px;padding:11px 16px;text-align:center"><div style="font-family:Fredoka;font-weight:500;font-size:20px;color:#854F0B">+10</div><div style="font-size:11px;color:#854F0B">XP</div></div>
+                    <div style="background:#EAF3DE;border-radius:16px;padding:11px 16px;text-align:center"><div style="font-family:Fredoka;font-weight:500;font-size:20px;color:#3B6D11">{{ streak }}</div><div style="font-size:11px;color:#3B6D11">day streak</div></div>
+                  </div>
+                  <button onClick="{{ dismiss }}" style="position:relative;width:100%;border:none;background:#639922;color:#fff;font-family:Fredoka;font-weight:500;font-size:16px;padding:15px;border-radius:28px;cursor:pointer">Continue</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ ovLevel }}" hint-placeholder-val="{{ false }}">
+              <div class="saFade" style="position:absolute;inset:0;background:#EAF3DE;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;overflow:hidden;z-index:20">
+                {{ confettiLevel }}
+                <div class="saPop" style="position:relative">{{ levelMascot }}</div>
+                <div style="position:relative;font-family:Fredoka;font-weight:500;font-size:14px;color:#854F0B;letter-spacing:1px;margin-top:14px">LEVEL UP</div>
+                <h2 style="position:relative;font-family:Fredoka;font-weight:500;font-size:34px;margin:4px 0 2px">Level {{ level }}</h2>
+                <p style="position:relative;font-size:15px;color:#5F5E5A;line-height:1.5;margin-bottom:22px;max-width:240px">You've grown a little steadier. {{ mName }} is proud of you.</p>
+                <button onClick="{{ closeOverlay }}" style="position:relative;width:100%;max-width:260px;border:none;background:#639922;color:#fff;font-family:Fredoka;font-weight:500;font-size:16px;padding:15px;border-radius:28px;cursor:pointer">Keep going</button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ ovMile }}" hint-placeholder-val="{{ false }}">
+              <div class="saFade" style="position:absolute;inset:0;background:rgba(44,44,42,.28);display:flex;align-items:center;justify-content:center;padding:24px;z-index:20">
+                <div class="saUp" style="position:relative;background:#FFFFFF;border-radius:28px;padding:26px 24px;text-align:center;width:100%;overflow:hidden">
+                  {{ confettiMile }}
+                  <div class="saPop" style="position:relative;display:flex;justify-content:center">{{ mileMascot }}</div>
+                  <h2 style="position:relative;font-family:Fredoka;font-weight:500;font-size:22px;margin:10px 0 4px">7-day streak!</h2>
+                  <p style="position:relative;font-size:14px;color:#5F5E5A;line-height:1.5;margin-bottom:18px">A whole week of checking in. That's real care for yourself.</p>
+                  <button onClick="{{ closeOverlay }}" style="position:relative;width:100%;border:none;background:#639922;color:#fff;font-family:Fredoka;font-weight:500;font-size:16px;padding:15px;border-radius:28px;cursor:pointer">Lovely</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ ovStreak }}" hint-placeholder-val="{{ false }}">
+              <div class="saFade" style="position:absolute;inset:0;background:#FAEEDA;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;z-index:20">
+                <div class="saPop">{{ streakMascot }}</div>
+                <div style="font-family:Fredoka;font-weight:500;font-size:54px;color:#854F0B;line-height:1;margin-top:16px;display:flex;align-items:center;gap:8px">{{ flameIconBig }}{{ streak }}</div>
+                <div style="font-family:Fredoka;font-weight:500;font-size:18px;color:#854F0B;margin:6px 0 4px">day streak</div>
+                <p style="font-size:14px;color:#854F0B;opacity:.85;line-height:1.5;margin-bottom:22px;max-width:240px">Life happens — if you ever miss a day, your progress stays safe. No guilt here.</p>
+                <button onClick="{{ closeOverlay }}" style="width:100%;max-width:260px;border:none;background:#EF9F27;color:#fff;font-family:Fredoka;font-weight:500;font-size:16px;padding:15px;border-radius:28px;cursor:pointer">Continue</button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ ovCrisis }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;inset:0;background:#E6F1FB;display:flex;flex-direction:column;padding:22px 22px 20px;z-index:25;overflow-y:auto" class="saScroll" role="alertdialog" aria-label="Support resources">
+                <div style="flex:none;display:flex;justify-content:flex-end"><button onClick="{{ closeOverlay }}" aria-label="Close" style="border:none;background:#FFFFFF;width:38px;height:38px;border-radius:9999px;cursor:pointer;display:flex;align-items:center;justify-content:center">{{ xIcon }}</button></div>
+                <div style="margin-top:6px">
+                  <div style="width:48px;height:48px;border-radius:9999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;margin-bottom:14px">{{ heartIcon }}</div>
+                  <h2 style="font-family:Fredoka;font-weight:500;font-size:22px;line-height:1.25;color:#0C447C;margin-bottom:8px">You don't have to carry this alone</h2>
+                  <p style="font-size:15px;line-height:1.6;color:#0C447C;margin-bottom:20px">It sounds like things feel really heavy right now. Talking to someone can help — these are free, confidential, and available now.</p>
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <a href="tel:14416" style="text-decoration:none;background:#FFFFFF;border-radius:18px;padding:15px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-family:Fredoka;font-weight:500;font-size:16px;color:#0C447C">Tele-MANAS</div><div style="font-size:13px;color:#3a6ea5">Govt. of India · 24×7</div></div><div style="font-family:Fredoka;font-weight:500;font-size:18px;color:#0C447C;display:flex;align-items:center;gap:7px">{{ phoneIcon }}14416</div></a>
+                    <a href="tel:18005990019" style="text-decoration:none;background:#FFFFFF;border-radius:18px;padding:15px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-family:Fredoka;font-weight:500;font-size:16px;color:#0C447C">KIRAN</div><div style="font-size:13px;color:#3a6ea5">Mental health · 24×7</div></div><div style="font-family:Fredoka;font-weight:500;font-size:16px;color:#0C447C;display:flex;align-items:center;gap:7px">{{ phoneIcon }}1800-599-0019</div></a>
+                    <a href="tel:+919152987821" style="text-decoration:none;background:#FFFFFF;border-radius:18px;padding:15px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-family:Fredoka;font-weight:500;font-size:16px;color:#0C447C">iCall</div><div style="font-size:13px;color:#3a6ea5">Mon–Sat · 8am–10pm</div></div><div style="font-family:Fredoka;font-weight:500;font-size:15px;color:#0C447C;display:flex;align-items:center;gap:7px">{{ phoneIcon }}+91 91529 87821</div></a>
+                  </div>
+                  <p style="font-size:13px;line-height:1.55;color:#3a6ea5;margin-top:18px;text-align:center">Saathi is a companion, not a substitute for professional help.</p>
+                  <button onClick="{{ closeOverlay }}" style="width:100%;border:1.5px solid #b9d3ec;background:none;color:#0C447C;font-family:Fredoka;font-weight:500;font-size:15px;padding:14px;border-radius:28px;cursor:pointer;margin-top:14px">I'm okay for now</button>
+                </div>
+              </div>
+            </sc-if>
+
+          </div>
+
+          <!-- bottom nav -->
+          <sc-if value="{{ onboarded }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:none;display:flex;padding:8px 12px 22px;border-top:1px solid #EFEBDD;background:#F7F4E9;z-index:5">
+              <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="4">
+                <button onClick="{{ n.onClick }}" aria-label="{{ n.label }}" aria-current="{{ n.active }}" style="flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0">{{ n.icon }}<span style="{{ n.labelStyle }}">{{ n.label }}</span></button>
+              </sc-for>
+            </div>
+          </sc-if>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- control strip -->
+    <div style="max-width:560px;margin:26px auto 0;text-align:center">
+      <div style="font-size:13px;color:#5F5E5A;margin-bottom:11px">Preview a moment in the phone above</div>
+      <div style="display:flex;flex-wrap:wrap;gap:9px;justify-content:center">
+        <sc-for list="{{ controls }}" as="c" hint-placeholder-count="6">
+          <button onClick="{{ c.onClick }}" style="{{ c.style }}">{{ c.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  reduced = (typeof window !== 'undefined' && window.matchMedia) ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
+  state = {
+    onboarded: false,
+    tab: 'journal',
+    overlay: null,
+    mShape: 'pentagon', mColor: '#639922', mAcc: 'sprout', mName: 'Pip',
+    mood: 0, entry: '',
+    streak: 4, xp: 30,
+    dots: [
+      {l:'Mon',s:'done'},{l:'Tue',s:'done'},{l:'Wed',s:'done'},
+      {l:'Thu',s:'today'},{l:'Fri',s:'pending'},{l:'Sat',s:'pending'},{l:'Sun',s:'pending'}
+    ],
+    journalFromFocus: false,
+    chat: [{role:'saathi', text:"Hi, I'm here with you. No pressure — what's on your mind today?"}],
+    typing: false, offline: false, input: '',
+    focusMin: 25, focusRem: null, focusTotal: null, focusRunning: false, focusDone: false, focusMood: 0,
+    breathOn: false, breathPhase: 'Ready', breathScale: 0.72, breathCount: 0
+  };
+
+  componentWillUnmount(){ clearInterval(this._ft); clearTimeout(this._ct); clearInterval(this._bt); }
+
+  // ---------- colour util ----------
+  shade(hex, p){
+    const n = parseInt(hex.slice(1),16);
+    let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+    const f=c=>Math.max(0,Math.min(255,Math.round(c+(p/100)*255)));
+    return '#'+((1<<24)+(f(r)<<16)+(f(g)<<8)+f(b)).toString(16).slice(1);
+  }
+
+  // ---------- mascot ----------
+  bodyShape(shape, col){
+    const e=React.createElement;
+    const s={fill:col, stroke:col, strokeWidth:12, strokeLinejoin:'round'};
+    if(shape==='circle') return e('circle',{key:'b',cx:60,cy:60,r:42,fill:col});
+    if(shape==='squircle') return e('rect',{key:'b',x:20,y:20,width:80,height:80,rx:28,fill:col});
+    if(shape==='hexagon') return e('polygon',{key:'b',points:'60,19 96,40 96,80 60,101 24,80 24,40',...s});
+    if(shape==='triangle') return e('polygon',{key:'b',points:'60,26 95,93 25,93',...s});
+    return e('polygon',{key:'b',points:'60,21 97,49 83,95 37,95 23,49',...s});
+  }
+  face(expr, ink){
+    const e=React.createElement, out=[], ly=58, lx=46, rx=74;
+    if(expr==='happy'||expr==='cheer'){
+      out.push(e('path',{key:'le',d:`M${lx-7},${ly+1} Q${lx},${ly-8} ${lx+7},${ly+1}`,stroke:ink,strokeWidth:4.5,fill:'none',strokeLinecap:'round'}));
+      out.push(e('path',{key:'re',d:`M${rx-7},${ly+1} Q${rx},${ly-8} ${rx+7},${ly+1}`,stroke:ink,strokeWidth:4.5,fill:'none',strokeLinecap:'round'}));
+      out.push(e('ellipse',{key:'lc',cx:38,cy:69,rx:5,ry:3,fill:'#E8907A',opacity:.5}));
+      out.push(e('ellipse',{key:'rc',cx:82,cy:69,rx:5,ry:3,fill:'#E8907A',opacity:.5}));
+    } else {
+      out.push(e('circle',{key:'le',cx:lx,cy:ly,r:4.6,fill:ink}));
+      out.push(e('circle',{key:'re',cx:rx,cy:ly,r:4.6,fill:ink}));
+    }
+    if(expr==='concerned'){
+      out.push(e('line',{key:'lb',x1:lx-8,y1:ly-12,x2:lx+5,y2:ly-9,stroke:ink,strokeWidth:3,strokeLinecap:'round'}));
+      out.push(e('line',{key:'rb',x1:rx+8,y1:ly-12,x2:rx-5,y2:ly-9,stroke:ink,strokeWidth:3,strokeLinecap:'round'}));
+    }
+    let mouth;
+    if(expr==='cheer') mouth=e('path',{key:'m',d:'M48,71 Q60,91 72,71 Z',fill:ink});
+    else if(expr==='happy') mouth=e('path',{key:'m',d:'M46,72 Q60,88 74,72',stroke:ink,strokeWidth:4.5,fill:'none',strokeLinecap:'round'});
+    else if(expr==='concerned') mouth=e('path',{key:'m',d:'M52,77 Q60,80 68,77',stroke:ink,strokeWidth:4,fill:'none',strokeLinecap:'round'});
+    else mouth=e('path',{key:'m',d:'M50,74 Q60,82 70,74',stroke:ink,strokeWidth:4.5,fill:'none',strokeLinecap:'round'});
+    out.push(mouth);
+    return out;
+  }
+  accessory(acc, col){
+    const e=React.createElement, out=[];
+    if(acc==='sprout'){
+      out.push(e('path',{key:'st',d:'M60,22 L60,8',stroke:this.shade(col,-22),strokeWidth:3,strokeLinecap:'round'}));
+      out.push(e('ellipse',{key:'l1',cx:53,cy:7,rx:7,ry:4,fill:'#7DB23A',transform:'rotate(-32 53 7)'}));
+      out.push(e('ellipse',{key:'l2',cx:67,cy:7,rx:7,ry:4,fill:'#7DB23A',transform:'rotate(32 67 7)'}));
+    } else if(acc==='sparkle'){
+      out.push(e('path',{key:'sp',d:'M93,12 L96,22 L106,25 L96,28 L93,38 L90,28 L80,25 L90,22 Z',fill:'#EF9F27'}));
+      out.push(e('circle',{key:'sp2',cx:78,cy:16,r:2.5,fill:'#EF9F27'}));
+    } else if(acc==='cap'){
+      out.push(e('rect',{key:'c1',x:42,y:4,width:36,height:15,rx:7,fill:'#5B8DB8'}));
+      out.push(e('rect',{key:'c2',x:37,y:17,width:46,height:5,rx:2.5,fill:'#4A7AA0'}));
+    } else if(acc==='specs'){
+      out.push(e('circle',{key:'g1',cx:46,cy:58,r:11,fill:'none',stroke:'#2C2C2A',strokeWidth:3}));
+      out.push(e('circle',{key:'g2',cx:74,cy:58,r:11,fill:'none',stroke:'#2C2C2A',strokeWidth:3}));
+      out.push(e('line',{key:'g3',x1:57,y1:58,x2:63,y2:58,stroke:'#2C2C2A',strokeWidth:3}));
+    }
+    return out;
+  }
+  makeMascot(o){
+    const e=React.createElement, ink='#2C2C2A';
+    const col=o.color||'#639922', shape=o.shape||'pentagon', expr=o.expr||'idle', size=o.size||120;
+    const kids=[ e('ellipse',{key:'sh',cx:60,cy:114,rx:28,ry:5,fill:'rgba(44,44,42,.07)'}) ];
+    if(expr==='cheer'){
+      kids.push(e('path',{key:'la',d:'M34,74 Q15,64 11,45',stroke:ink,strokeWidth:5,fill:'none',strokeLinecap:'round'}));
+      kids.push(e('path',{key:'ra',d:'M86,74 Q105,64 109,45',stroke:ink,strokeWidth:5,fill:'none',strokeLinecap:'round'}));
+      kids.push(e('circle',{key:'lh',cx:11,cy:45,r:4,fill:ink}));
+      kids.push(e('circle',{key:'rh',cx:109,cy:45,r:4,fill:ink}));
+    }
+    kids.push(this.bodyShape(shape,col));
+    this.face(expr,ink).forEach(el=>kids.push(el));
+    this.accessory(o.acc,col).forEach(el=>kids.push(el));
+    return e('svg',{viewBox:'0 0 120 120',width:size,height:size,style:{display:'block',overflow:'visible'},'aria-hidden':'true'},kids);
+  }
+  shapeIcon(shape, col){
+    return React.createElement('svg',{viewBox:'0 0 120 120',width:34,height:34,'aria-hidden':'true'},[this.bodyShape(shape,col)]);
+  }
+  moodIcon(level, col){
+    const e=React.createElement, ink=col||'#2C2C2A', out=[];
+    out.push(e('circle',{key:'l',cx:14,cy:16,r:2.4,fill:ink}));
+    out.push(e('circle',{key:'r',cx:26,cy:16,r:2.4,fill:ink}));
+    const mouths={1:'M12,30 Q20,23 28,30',2:'M13,29 Q20,25 27,29',3:'M13,27 L27,27',4:'M13,25 Q20,31 27,25',5:'M11,24 Q20,34 29,24'};
+    out.push(e('path',{key:'m',d:mouths[level],stroke:ink,strokeWidth:3,fill:'none',strokeLinecap:'round',strokeLinejoin:'round'}));
+    return e('svg',{viewBox:'0 0 40 40',width:30,height:30,'aria-hidden':'true'},out);
+  }
+  icon(name, o){
+    o=o||{}; const e=React.createElement, c=o.color||'#2C2C2A', sz=o.size||22, sw=o.sw||2;
+    const wrap=(kids)=>e('svg',{viewBox:'0 0 24 24',width:sz,height:sz,fill:'none','aria-hidden':'true'},kids);
+    const ln=(p,extra)=>e('path',Object.assign({d:p,stroke:c,strokeWidth:sw,strokeLinecap:'round',strokeLinejoin:'round',fill:'none'},extra||{}));
+    switch(name){
+      case 'journal': return wrap([ln('M6 4h9a3 3 0 0 1 3 3v13H8a2 2 0 0 1-2-2V4Z'),ln('M9 9h6'),ln('M9 13h4')]);
+      case 'focus': return wrap([e('circle',{cx:12,cy:13,r:8,stroke:c,strokeWidth:sw,fill:'none'}),ln('M12 13V9'),ln('M12 13l3 2'),ln('M9 3h6')]);
+      case 'companion': return wrap([ln('M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3v-3a2 2 0 0 1-1-2V6Z')]);
+      case 'breathe': return wrap([e('circle',{cx:12,cy:12,r:3.4,stroke:c,strokeWidth:sw,fill:'none'}),e('circle',{cx:12,cy:12,r:8,stroke:c,strokeWidth:sw,fill:'none',opacity:.5})]);
+      case 'lock': return wrap([e('rect',{x:5,y:11,width:14,height:9,rx:2,stroke:c,strokeWidth:sw,fill:'none'}),ln('M8 11V8a4 4 0 0 1 8 0v3')]);
+      case 'clock': return wrap([e('circle',{cx:12,cy:12,r:8,stroke:c,strokeWidth:sw,fill:'none'}),ln('M12 8v4l3 2')]);
+      case 'flame': return wrap([e('path',{d:'M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 2-4 .5 2 2 2 2 4',fill:c,stroke:'none'})]);
+      case 'check': return wrap([ln('M5 12.5 10 17 19 7')]);
+      case 'x': return wrap([ln('M7 7l10 10'),ln('M17 7L7 17')]);
+      case 'minus': return wrap([ln('M6 12h12',{strokeWidth:2.4})]);
+      case 'plus': return wrap([ln('M12 6v12',{strokeWidth:2.4}),ln('M6 12h12',{strokeWidth:2.4})]);
+      case 'bell': return wrap([ln('M6 16V11a6 6 0 0 1 12 0v5l2 2H4l2-2Z'),ln('M10 20a2 2 0 0 0 4 0')]);
+      case 'tip': return wrap([e('circle',{cx:12,cy:12,r:8,stroke:c,strokeWidth:sw,fill:'none'}),ln('M12 11v5'),e('circle',{cx:12,cy:8,r:.6,fill:c,stroke:c})]);
+      case 'send': return wrap([e('path',{d:'M4 12l16-7-7 16-2-7-7-2Z',fill:'#fff',stroke:'none'})]);
+      case 'wifiOff': return wrap([ln('M3 8a16 16 0 0 1 18 0'),ln('M6.5 11.5a10 10 0 0 1 11 0'),ln('M9.5 15a5 5 0 0 1 5 0'),e('circle',{cx:12,cy:18.5,r:1,fill:c,stroke:c}),ln('M3 3l18 18',{stroke:'#0C447C'})]);
+      case 'heart': return wrap([e('path',{d:'M12 20s-7-4.5-7-9.5A3.5 3.5 0 0 1 12 7a3.5 3.5 0 0 1 7 3.5C19 15.5 12 20 12 20Z',fill:'#0C447C',stroke:'none'})]);
+      case 'phone': return wrap([e('path',{d:'M6 4h3l1.5 4-2 1.5a10 10 0 0 0 5 5l1.5-2 4 1.5V18a2 2 0 0 1-2.2 2A15 15 0 0 1 4 6.2 2 2 0 0 1 6 4Z',fill:c,stroke:'none'})]);
+      case 'none': return wrap([e('circle',{cx:12,cy:12,r:8,stroke:c,strokeWidth:sw,fill:'none',opacity:.5}),ln('M7 17 17 7',{opacity:.5})]);
+      default: return wrap([]);
+    }
+  }
+  confetti(){
+    if(this.reduced) return null;
+    const e=React.createElement, cols=['#EF9F27','#639922','#5B8DB8','#9B86C4','#E0A93E','#E8907A'], parts=[];
+    for(let i=0;i<26;i++){
+      const left=Math.random()*100, delay=Math.random()*.3, dur=1.7+Math.random()*1.1, w=6+Math.random()*6, rot=Math.random()*360;
+      parts.push(e('span',{key:i,style:{position:'absolute',top:'-12px',left:left+'%',width:w+'px',height:(w*.62)+'px',background:cols[i%6],borderRadius:'2px',transform:`rotate(${rot}deg)`,animation:`saConfetti ${dur}s ${delay}s ease-in forwards`}}));
+    }
+    return e('div',{'aria-hidden':'true',style:{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}},parts);
+  }
+
+  // ---------- handlers ----------
+  finishOnboard(){ this.setState({onboarded:true, tab:'journal'}); }
+  setShape(s){ this.setState({mShape:s}); }
+  setColor(c){ this.setState({mColor:c}); }
+  setAcc(a){ this.setState({mAcc:a}); }
+  onName(ev){ this.setState({mName: ev.target.value || ''}); }
+  goTab(t){ this.setState({tab:t, overlay:null}); if(t!=='breathe') this.stopBreath(); }
+  pickMood(id){ this.setState({mood:id}); }
+  onEntry(ev){ this.setState({entry: ev.target.value}); }
+
+  crisisWords = ['kill myself','end it all','want to die','no point in living','no reason to live','hurt myself','can\'t go on','better off without me','suicid','worthless'];
+  saveEntry(){
+    const t=(this.state.entry||'').toLowerCase();
+    if(this.crisisWords.some(w=>t.includes(w))){ this.setState({overlay:'crisis'}); return; }
+    this.setState(s=>{
+      const dots=s.dots.map(d=> d.s==='today' ? {...d,s:'done'} : d);
+      const ns=s.streak+1, nx=s.xp+10;
+      return {dots, streak:ns, xp:nx, overlay: ns===7 ? 'mile' : (Math.floor(nx/50) > Math.floor(s.xp/50) ? 'level' : 'reward')};
+    });
+  }
+  dismiss(){ this.setState({overlay:null, entry:'', mood:0, journalFromFocus:false}); }
+  closeOverlay(){ this.setState({overlay:null}); }
+  openCrisisDemo(){ this.setState({overlay:'crisis'}); }
+
+  // focus
+  toggleFocus(){
+    if(this.state.focusRunning){ clearInterval(this._ft); this.setState({focusRunning:false}); return; }
+    const total=this.state.focusMin*60;
+    const rem=(this.state.focusRem!=null && this.state.focusRem>0) ? this.state.focusRem : total;
+    this.setState({focusRunning:true, focusDone:false, focusTotal:this.state.focusTotal||total, focusRem:rem});
+    clearInterval(this._ft);
+    this._ft=setInterval(()=>{
+      this.setState(s=>{
+        const nr=s.focusRem-1;
+        if(nr<=0){ clearInterval(this._ft); return {focusRem:0,focusRunning:false,focusDone:true,xp:s.xp+15}; }
+        return {focusRem:nr};
+      });
+    },1000);
+  }
+  skipFocus(){ clearInterval(this._ft); this.setState(s=>({focusRunning:false,focusRem:0,focusDone:true,xp:s.xp+15})); }
+  stepFocus(d){ if(this.state.focusRunning) return; const m=Math.max(5,Math.min(60,this.state.focusMin+d)); this.setState({focusMin:m,focusRem:null,focusTotal:null}); }
+  pickFocusMood(id){ this.setState({focusMood:id}); }
+  closeFocus(){ this.setState({focusDone:false,focusRem:null,focusTotal:null,focusMood:0}); }
+  goJournalFromFocus(){ this.setState(s=>({tab:'journal',focusDone:false,journalFromFocus:true,mood:s.focusMood||s.mood,focusRem:null,focusTotal:null})); }
+  askSaathiFromFocus(){
+    this.setState(s=>({tab:'companion',focusDone:false,focusRem:null,focusTotal:null,
+      chat:[...s.chat,{role:'saathi',text:"How did that session go? If a problem's bugging you, tell me what you got stuck on — we'll untangle it together."}]}));
+  }
+
+  // chat
+  suggestedList = ["I'm anxious about NEET","I can't focus today","I keep comparing myself"];
+  respond(msg){
+    if(this.state.offline){
+      return "I'm offline right now, so I can't chat properly — but try this: breathe in for 4, hold for 4, out for 4, three times. I'll be right here when you're back.";
+    }
+    const m=msg.toLowerCase();
+    // NOTE: swap this scripted lookup for a streamed window.claude.complete() call to go live.
+    if(m.includes('neet')||m.includes('exam')||m.includes('anxious')) return "That pressure is so real — NEET asks a lot of you. Let's shrink it: what's the one chapter or task for the next hour? We'll leave the rest of the mountain for later.";
+    if(m.includes('focus')||m.includes('concentrate')||m.includes('distract')) return "Some days the focus just won't come, and that's human. Want to try a 25-minute sprint together? I'll sit with you, and we'll stop the second it's done.";
+    if(m.includes('compar')||m.includes('everyone')||m.includes('behind')) return "Comparison is a thief, especially at 1am on the internet. Your only real benchmark is you, yesterday. Tell me one small thing you understand now that you didn't last week.";
+    if(m.includes('tired')||m.includes('sleep')||m.includes('exhaust')) return "Tired is information, not weakness. Rest is part of studying too. Could tonight be a 'close the books a little early' night?";
+    if(m.includes('stuck')||m.includes('doubt')||m.includes('understand')) return "Okay, let's slow it down. Say the bit that's fuzzy out loud to me, in your own words — half the time naming it is where the unlock hides.";
+    return "I hear you. Thank you for telling me. Want to talk it through a little more, or would a slow breath help first?";
+  }
+  pushSend(text){
+    const msg=(text!=null?text:this.state.input).trim();
+    if(!msg) return;
+    this.setState(s=>({chat:[...s.chat,{role:'me',text:msg}], input:'', typing:true}));
+    clearTimeout(this._ct);
+    this._ct=setTimeout(()=>{
+      const reply=this.respond(msg);
+      this.setState(s=>({typing:false, chat:[...s.chat,{role:'saathi',text:reply}]}));
+    }, this.reduced?350:1150);
+  }
+  onInput(ev){ this.setState({input:ev.target.value}); }
+  onInputKey(ev){ if(ev.key==='Enter'){ ev.preventDefault(); this.pushSend(); } }
+  toggleOffline(){ this.setState(s=>({offline:!s.offline})); }
+
+  // breathe
+  breathSeq=[{n:'Breathe in',sc:1.0},{n:'Hold',sc:1.0},{n:'Breathe out',sc:.62}];
+  startBreath(){
+    if(this.state.breathOn) return;
+    let i=0;
+    const tick=()=>{
+      const ph=this.breathSeq[i % 3];
+      this.setState({breathPhase:ph.n, breathScale:this.reduced?0.85:ph.sc});
+      if(i>0 && i%3===0) this.setState(s=>({breathCount:Math.min(5,s.breathCount+1)}));
+      i++;
+    };
+    this.setState({breathOn:true, breathCount:0});
+    tick();
+    this._bt=setInterval(tick, 3800);
+  }
+  stopBreath(){ clearInterval(this._bt); if(this.state.breathOn) this.setState({breathOn:false, breathPhase:'Ready', breathScale:0.72}); }
+  toggleBreath(){ if(this.state.breathOn) this.stopBreath(); else this.startBreath(); }
+
+  // ---------- render ----------
+  fmt(sec){ const m=Math.floor(sec/60), s=sec%60; return m+':'+(s<10?'0':'')+s; }
+
+  renderVals(){
+    const st=this.state, cfg={shape:st.mShape,color:st.mColor,acc:st.mAcc};
+    const homeExpr = st.mood>=4 ? 'happy' : (st.mood===1||st.mood===2 ? 'concerned' : 'idle');
+    const level = Math.floor(st.xp/50)+1;
+    const ink='#2C2C2A';
+
+    // shape options
+    const shapes=['pentagon','circle','squircle','hexagon','triangle'];
+    const shapeOpts=shapes.map(sh=>{
+      const sel=st.mShape===sh;
+      return {key:sh, selected:sel, icon:this.shapeIcon(sh, sel?st.mColor:'#c7c2b3'),
+        onClick:()=>this.setShape(sh),
+        style:{width:'56px',height:'56px',marginRight:'8px',border:sel?'2px solid #639922':'1.5px solid #EFEBDD',background:sel?'#EAF3DE':'#FFFFFF',borderRadius:'18px',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}};
+    });
+    const colors=[['#639922','sage'],['#5B8DB8','blue'],['#E08A5B','terracotta'],['#9B86C4','lavender'],['#E0A93E','gold'],['#4FA399','teal']];
+    const colorOpts=colors.map(([c,l])=>{
+      const sel=st.mColor===c;
+      return {key:c,label:l,selected:sel,onClick:()=>this.setColor(c),
+        style:{width:'52px',height:'52px',marginRight:'8px',padding:0,borderRadius:'9999px',cursor:'pointer',border:sel?'2px solid #2C2C2A':'2px solid transparent',background:'#FFFFFF',display:'inline-flex',alignItems:'center',justifyContent:'center'},
+        swatch:{width:'36px',height:'36px',borderRadius:'9999px',background:c,display:'block'}};
+    });
+    const accs=[['none','None'],['sprout','Sprout'],['sparkle','Spark'],['cap','Cap'],['specs','Specs']];
+    const accOpts=accs.map(([a,l])=>{
+      const sel=st.mAcc===a;
+      return {key:a,label:l,selected:sel,onClick:()=>this.setAcc(a),
+        icon: a==='none'?this.icon('none',{size:22,color:sel?'#3B6D11':'#888780'}): this.makeMascot({shape:'circle',color:st.mColor,acc:a,expr:'idle',size:30}),
+        style:{width:'62px',height:'62px',marginRight:'8px',border:sel?'2px solid #639922':'1.5px solid #EFEBDD',background:sel?'#EAF3DE':'#FFFFFF',borderRadius:'18px',cursor:'pointer',display:'inline-flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'1px',padding:0}};
+    });
+
+    // mood pickers
+    const moodLabels={1:'Low',2:'Meh',3:'Okay',4:'Good',5:'Great'};
+    const moods=[1,2,3,4,5].map(id=>{
+      const sel=st.mood===id;
+      return {key:id,selected:sel,label:moodLabels[id],onClick:()=>this.pickMood(id),
+        icon:this.moodIcon(id, sel?'#3B6D11':'#5F5E5A'),
+        style:{flex:1,border:sel?'2px solid #639922':'1.5px solid #EFEBDD',background:sel?'#EAF3DE':'#FFFFFF',borderRadius:'16px',padding:'10px 2px 8px',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'4px'},
+        labelStyle:{fontSize:'11px',color:sel?'#3B6D11':'#888780'}};
+    });
+    const moodsFocus=[1,2,3,4,5].map(id=>{
+      const sel=st.focusMood===id;
+      return {key:id,selected:sel,onClick:()=>this.pickFocusMood(id),
+        icon:this.moodIcon(id, sel?'#3B6D11':'#5F5E5A'),
+        style:{flex:1,border:sel?'2px solid #639922':'1.5px solid #EFEBDD',background:sel?'#EAF3DE':'#FFFFFF',borderRadius:'16px',padding:'12px 2px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}};
+    });
+
+    // day dots
+    const dots=st.dots.map((d,i)=>{
+      let style={width:'34px',height:'34px',borderRadius:'9999px',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Fredoka',fontWeight:500,fontSize:'13px'}, inner=null;
+      if(d.s==='done'){ style.background='#639922'; inner=this.icon('check',{size:18,color:'#fff',sw:2.4}); }
+      else if(d.s==='today'){ style.background='#FFFFFF'; style.border='2px solid #639922'; style.color='#3B6D11'; inner='•'; }
+      else { style.background='#EFEBDD'; style.color='#b3ae9f'; inner=''; }
+      return {key:i,l:d.l,style,inner};
+    });
+
+    // nav
+    const tabs=[['journal','Journal'],['focus','Focus'],['companion',st.mName||'Saathi'],['breathe','Breathe']];
+    const navItems=tabs.map(([k,lab])=>{
+      const act=st.tab===k, col=act?'#639922':'#9b9788';
+      const iconName = k==='companion'?'companion':k;
+      return {key:k,label:lab,active:act?'page':undefined,onClick:()=>this.goTab(k),
+        icon:this.icon(iconName,{size:23,color:col,sw:act?2.3:2}),
+        labelStyle:{fontSize:'11px',fontFamily:'Fredoka',fontWeight:500,color:col}};
+    });
+
+    // chat
+    const chat=st.chat.map((m,i)=>{
+      const me=m.role==='me';
+      return {key:i,text:m.text,
+        row:{display:'flex',justifyContent:me?'flex-end':'flex-start'},
+        bubble: me
+          ? {maxWidth:'78%',background:'#639922',color:'#fff',borderRadius:'18px 18px 6px 18px',padding:'11px 15px',fontSize:'15px',lineHeight:1.5}
+          : {maxWidth:'82%',background:'#FFFFFF',color:'#2C2C2A',borderRadius:'18px 18px 18px 6px',padding:'11px 15px',fontSize:'15px',lineHeight:1.5}};
+    });
+    const sugg = st.offline ? ['Try a grounding step','Breathe with me'] : this.suggestedList;
+    const suggested=sugg.map((t,i)=>({key:i,text:t,onClick:()=> st.offline ? this.goTab('breathe') : this.pushSend(t)}));
+
+    // focus
+    const total=st.focusTotal||(st.focusMin*60);
+    const rem=st.focusRem!=null?st.focusRem:total;
+    const prog=total>0?(total-rem)/total:0;
+    const R=104, C=2*Math.PI*R;
+    const focusRing=React.createElement('svg',{viewBox:'0 0 236 236',width:236,height:236,'aria-hidden':'true',style:{transform:'rotate(-90deg)'}},[
+      React.createElement('circle',{key:'t',cx:118,cy:118,r:R,fill:'none',stroke:'#EFEBDD',strokeWidth:12}),
+      React.createElement('circle',{key:'p',cx:118,cy:118,r:R,fill:'none',stroke:'#639922',strokeWidth:12,strokeLinecap:'round',strokeDasharray:C,strokeDashoffset:C*(1-prog),style:{transition:'stroke-dashoffset 1s linear'}})
+    ]);
+    const focusMinDone=Math.round(total/60);
+
+    // controls strip
+    const cbtn=(label,fn,kind)=>({key:label,label,onClick:fn,
+      style:{border:kind==='warn'?'1.5px solid #E6F1FB':'1.5px solid #ddd6c4',background:kind==='warn'?'#E6F1FB':'#FFFFFF',color:kind==='warn'?'#0C447C':'#5F5E5A',fontSize:'13px',padding:'10px 15px',borderRadius:'28px',cursor:'pointer',fontFamily:'Nunito',fontWeight:500}});
+    const controls=[
+      cbtn('Reward', ()=>this.setState({overlay:'reward'})),
+      cbtn('Level up', ()=>this.setState({overlay:'level'})),
+      cbtn('Milestone', ()=>this.setState({overlay:'mile'})),
+      cbtn('Streak', ()=>this.setState({overlay:'streak'})),
+      cbtn('Safety surface', ()=>this.setState({overlay:'crisis'}), 'warn'),
+      cbtn('Rebuild saathi', ()=>this.setState({onboarded:false}))
+    ];
+
+    const promptText = st.journalFromFocus
+      ? `You just focused for ${focusMinDone} minutes — how are you feeling now?`
+      : (st.mood>=4 ? "Love that for you. What made today a little brighter?" : (st.mood&&st.mood<=2 ? "Thanks for being honest with me. What's weighing on you?" : "However today went, it's worth a few words. I'm listening."));
+
+    return {
+      notOnboarded: !st.onboarded, onboarded: st.onboarded,
+      tabJournal: st.onboarded && st.tab==='journal', tabFocus: st.onboarded && st.tab==='focus', tabCompanion: st.onboarded && st.tab==='companion', tabBreathe: st.onboarded && st.tab==='breathe',
+      ovReward: st.overlay==='reward', ovLevel: st.overlay==='level', ovMile: st.overlay==='mile', ovStreak: st.overlay==='streak', ovCrisis: st.overlay==='crisis',
+
+      mName: st.mName, greetName: 'Aarav',
+      builderMascot: this.makeMascot({...cfg, expr:'happy', size:150}),
+      homeMascot: this.makeMascot({...cfg, expr:homeExpr, size:64}),
+      chatMascot: this.makeMascot({...cfg, expr:'idle', size:42}),
+      rewardMascot: this.makeMascot({...cfg, expr:'happy', size:104}),
+      levelMascot: this.makeMascot({...cfg, expr:'cheer', size:120}),
+      mileMascot: this.makeMascot({...cfg, expr:'cheer', size:104}),
+      streakMascot: this.makeMascot({...cfg, expr:'happy', size:96}),
+      focusMascot: this.makeMascot({...cfg, expr: st.focusRunning?'idle':'idle', size:70}),
+      focusDoneMascot: this.makeMascot({...cfg, expr:'cheer', size:118}),
+
+      shapeOpts, colorOpts, accOpts, onName: (e)=>this.onName(e), finishOnboard: ()=>this.finishOnboard(),
+      lockIcon: this.icon('lock',{size:14,color:'#888780'}), lockIconSm: this.icon('lock',{size:13,color:'#888780'}),
+      flameIcon: this.icon('flame',{size:18,color:'#EF9F27'}), flameIconBig: this.icon('flame',{size:48,color:'#EF9F27'}),
+      clockIconSm: this.icon('clock',{size:14,color:'#3B6D11'}),
+
+      streak: st.streak, level, promptText,
+      dots, moods, moodsFocus,
+      entry: st.entry, onEntry:(e)=>this.onEntry(e), saveEntry:()=>this.saveEntry(),
+      saveDisabled: st.mood===0?true:undefined,
+      saveStyle:{marginTop:'16px',width:'100%',border:'none',background:st.mood===0?'#cdd9bf':'#639922',color:'#fff',fontFamily:'Fredoka',fontWeight:500,fontSize:'17px',padding:'16px',borderRadius:'28px',cursor:st.mood===0?'default':'pointer'},
+      openCrisisDemo:()=>this.openCrisisDemo(), journalFromFocus: st.journalFromFocus,
+
+      // focus
+      focusActive: !st.focusDone, focusDone: st.focusDone, focusIdle: !st.focusRunning && !st.focusDone, focusRunning: st.focusRunning,
+      focusTime: this.fmt(rem), focusRing, focusMin: st.focusMin, focusMinDone,
+      focusModeLabel: st.focusRunning?'in progress':'pomodoro',
+      focusHint: st.focusRunning?'Stay with one task. You\u2019ve got this.':'Set a length and start when you\u2019re ready.',
+      stepMinus:()=>this.stepFocus(-5), stepPlus:()=>this.stepFocus(5),
+      toggleFocus:()=>this.toggleFocus(), skipFocus:()=>this.skipFocus(),
+      focusBtnLabel: st.focusRunning?'Pause':(st.focusRem!=null&&st.focusRem>0?'Resume':'Start focus'),
+      minusIcon:this.icon('minus',{size:22,color:'#3B6D11'}), plusIcon:this.icon('plus',{size:22,color:'#3B6D11'}),
+      bellIcon:this.icon('bell',{size:16,color:'#3B6D11'}), tipIcon:this.icon('tip',{size:20,color:'#639922'}),
+      goJournalFromFocus:()=>this.goJournalFromFocus(), askSaathiFromFocus:()=>this.askSaathiFromFocus(), closeFocus:()=>this.closeFocus(),
+
+      // chat
+      chat, typing: st.typing, offline: st.offline, input: st.input,
+      onInput:(e)=>this.onInput(e), onInputKey:(e)=>this.onInputKey(e), sendMsg:()=>this.pushSend(),
+      toggleOffline:()=>this.toggleOffline(), offlineBtn: st.offline?'Go online':'Test offline',
+      statusText: st.offline?'Offline · fallback mode':'Here with you',
+      statusColor: st.offline?'#b9852f':'#639922',
+      sendIcon:this.icon('send',{size:22}), wifiOffIcon:this.icon('wifiOff',{size:20,color:'#0C447C'}),
+      suggested,
+
+      // breathe
+      breathPhase: st.breathPhase, breathScale: st.breathScale, breathCount: st.breathCount,
+      breathBtn: st.breathOn?'Stop':'Begin', breathSub: this.reduced?'Reduced-motion: follow the words at your own pace.':(st.breathOn?'Follow the circle and the words.':'Find a comfortable seat. Ready when you are.'),
+      toggleBreath:()=>this.toggleBreath(),
+
+      // crisis icons
+      xIcon:this.icon('x',{size:20,color:'#0C447C'}), heartIcon:this.icon('heart',{size:24}), phoneIcon:this.icon('phone',{size:16,color:'#0C447C'}),
+
+      navItems, controls,
+      confettiReward: this.confetti(), confettiLevel: this.confetti(), confettiMile: this.confetti(),
+      dismiss:()=>this.dismiss(), closeOverlay:()=>this.closeOverlay()
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    name: Unit tests (node --test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Zero runtime dependencies — nothing to install. The pure analysis core
+      # (engine, crisis, prompts, provider, voice) is tested with the built-in
+      # runner. No Ollama, Whisper, or browser are needed: the provider/voice
+      # tests mock fetch and the app degrades to the tested fallback path.
+      - name: Run unit tests
+        run: npm test
+
+  e2e:
+    name: E2E smoke (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dev dependencies
+        run: npm install
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      # Runs against the offline/fallback path (no Ollama or Whisper required);
+      # the crisis safety path is fully deterministic.
+      - name: Run e2e smoke tests
+        run: npm run e2e
